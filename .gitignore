@@ -1,0 +1,51 @@
+# =============================================================================
+# DARKROOM 2.0 - GIT IGNORE
+# =============================================================================
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+ehthumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary Files & Logs
+*.log
+test_*.png
+temp_*
+*.tmp
+
+# Large Neural Network Weights (Auto-downloaded by OpenCV Zoo on first run)
+Darkroom/backend/hardware/models/*.onnx
+
+# Storage generated exports & test artifacts
+Darkroom/storage/exports/*
+!Darkroom/storage/exports/.gitkeep
+Darkroom/storage/raw_vault/*
+!Darkroom/storage/raw_vault/.gitkeep
+Darkroom/storage/uploads/*
+!Darkroom/storage/uploads/.gitkeep
+Darkroom/storage/test_scratch/
+
+# Kuliah Assignments & Course Notes (Not Part of App)
+Materi/
+Tugas*/
+*.docx
+*Tugas*.pdf

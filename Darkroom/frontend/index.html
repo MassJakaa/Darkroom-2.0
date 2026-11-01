@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Darkroom 2.0 - Studio Fotografi & Covert Suite</title>
+    <!-- Google Fonts & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="mode-lightroom">
+
+    <div class="app-layout">
+        <!-- ========================================================================= -->
+        <!-- 1. LEFT SIDEBAR NAVIGATION (LIGHTROOM WORKSPACE ARCHITECTURE)             -->
+        <!-- ========================================================================= -->
+        <aside class="app-sidebar">
+            <div class="sidebar-top">
+                <div class="lr-badge" id="app-brand-badge">Lr</div>
+                <div class="brand-text">
+                    <span class="brand-name" id="app-brand-name">Adobe Lightroom</span>
+                    <span class="brand-sub" id="app-brand-sub">Develop Studio</span>
+                </div>
+            </div>
+
+            <!-- TOMBOL UBAH MODE (LIGHTROOM <-> DARKROOM) UNTUK PENGUJIAN & DEMO TANPA LOGIN -->
+            <div class="sidebar-mode-switcher">
+                <button class="btn-mode-switcher" id="btn-toggle-app-mode" title="Klik untuk beralih antara Mode Lightroom (Kamuflase) dan Mode Darkroom (Kriptografi)">
+                    <div class="mode-switcher-left">
+                        <span class="mode-led" id="mode-led-indicator"></span>
+                        <span class="mode-text" id="mode-text-label">Mode: Lightroom</span>
+                    </div>
+                    <i class="fa-solid fa-repeat mode-icon-swap"></i>
+                </button>
+            </div>
+
+            <!-- MENU UTAMA RUANG KERJA (LIGHTROOM CAMOUFLAGE + COVERT CRYPTO SUITE) -->
+            <nav class="sidebar-nav">
+                <button class="sidebar-tab-btn" data-view="view-library" title="Katalog, Grid Foto, & Manajemen Aset">
+                    <i class="fa-solid fa-table-cells"></i>
+                    <span>Library</span>
+                </button>
+                <button class="sidebar-tab-btn active" data-view="view-develop" title="Pengembangan Foto, Tone, Warna, & Komparasi">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>Develop</span>
+                </button>
+                <button class="sidebar-tab-btn" data-view="view-export" title="Ekspor Format, Resolusi, & Kualitas Berkas">
+                    <i class="fa-solid fa-file-export"></i>
+                    <span>Export</span>
+                </button>
+                <button class="sidebar-tab-btn covert-menu-item" data-view="view-transfer" title="Ruang Kerja Steganografi & Enkripsi Gambar">
+                    <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                    <span>Transfer (Stego)</span>
+                </button>
+                <button class="sidebar-tab-btn covert-menu-item" data-view="view-decrypt" title="Dekripsi & Ekstraktor Steganografi">
+                    <i class="fa-solid fa-key"></i>
+                    <span>Dekripsi</span>
+                </button>
+                <button class="sidebar-tab-btn covert-menu-item" data-view="view-preferences" title="Pengaturan, Keamanan, Dongle & Audit Blockchain">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Preferences</span>
+                </button>
+            </nav>
+
+            <!-- SIDEBAR FOOTER (HARDWARE STATUS & PANIC SWITCH) -->
+            <div class="sidebar-footer">
+                <div class="dongle-indicator" id="dongle-indicator" title="Status Pembaca Kunci SD Card Dongle">
+                    <i class="fa-solid fa-sd-card"></i>
+                    <span id="dongle-status-text">SD Reader</span>
+                </div>
+                <div class="camouflage-badge" id="camouflage-status-badge" title="Mode Kamuflase Aktif: Fitur kriptografi disembunyikan">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Kamuflase Aktif</span>
+                </div>
+                <button class="panic-switch-btn covert-menu-item" id="sidebar-panic-btn" title="Kunci Darurat Seketika (Dead Man's Switch)">
+                    <i class="fa-solid fa-skull-crossbones"></i>
+                    <span>Panic Lock</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ========================================================================= -->
+        <!-- 2. MAIN APPLICATION CONTENT AREA                                          -->
+        <!-- ========================================================================= -->
+        <div class="app-main-content">
+
+            <!-- ===================================================================== -->
+            <!-- WORKSPACE 1: LIBRARY (KATALOG, FILTER, ASSET MANAGEMENT)              -->
+            <!-- ===================================================================== -->
+            <main class="app-view" id="view-library" style="display: none;">
+                <div class="library-workspace">
+                    <!-- Top Toolbar Library -->
+                    <div class="library-toolbar">
+                        <div class="library-search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="library-search-input" placeholder="Cari nama berkas foto...">
+                        </div>
+                        <div class="library-filters">
+                            <button class="filter-chip active" data-filter="all">Semua Foto</button>
+                            <button class="filter-chip" data-filter="unlocked">Normal</button>
+                            <button class="filter-chip" data-filter="locked">Terkunci (.enc)</button>
+                            <button class="filter-chip" data-filter="stego">Stego / Decoy</button>
+                        </div>
+                        <label class="btn btn-primary btn-sm btn-import-library">
+                            <i class="fa-solid fa-plus"></i> Impor Foto
+                            <input type="file" id="library-import-input" multiple accept="image/*" style="display: none;">
+                        </label>
+                    </div>
+
+                    <!-- Layout Utama: Grid (Kiri/Tengah) + Detail Panel (Kanan) -->
+                    <div class="library-content-split">
+                        <div class="library-grid-container" id="library-grid-container">
+                            <div class="library-grid" id="library-grid">
+                                <!-- Kartu grid diisi dinamis via JS -->
+                            </div>
+                        </div>
+
+                        <!-- Sidebar Detail Berkas Terpilih -->
+                        <aside class="library-detail-panel" id="library-detail-panel">
+                            <div class="detail-header">
+                                <h3><i class="fa-solid fa-circle-info"></i> Detail Aset</h3>
+                            </div>
+                            <div class="detail-preview-box">
+                                <img id="library-detail-img" src="" alt="Thumbnail preview">
+                                <div class="detail-empty-msg" id="library-detail-empty">Pilih foto dari grid untuk melihat detail</div>
+                            </div>
+                            <div class="detail-info-list" id="library-detail-info" style="display: none;">
+                                <div class="detail-row"><span>Nama Berkas:</span><strong id="lib-meta-filename">-</strong></div>
+                                <div class="detail-row"><span>Ukuran:</span><strong id="lib-meta-filesize">-</strong></div>
+                                <div class="detail-row"><span>Status:</span><span class="badge" id="lib-meta-status">Normal</span></div>
+                                <div class="detail-row"><span>Jalur Penyimpanan:</span><code id="lib-meta-path">-</code></div>
+                            </div>
+                            <div class="detail-actions" id="library-detail-actions" style="display: none;">
+                                <button class="btn btn-primary btn-block" id="btn-lib-open-develop">
+                                    <i class="fa-solid fa-sliders"></i> Buka di Develop
+                                </button>
+                                <button class="btn btn-success btn-block" id="btn-lib-use-transfer">
+                                    <i class="fa-solid fa-arrow-right-arrow-left"></i> Gunakan Cover Transfer
+                                </button>
+                                <button class="btn btn-outline btn-block covert-menu-item" id="btn-lib-toggle-lock" style="margin-top: 2px;">
+                                    <i class="fa-solid fa-file-shield"></i> Kunci / Buka Berkas (.enc)
+                                </button>
+                                <div class="btn-group-2">
+                                    <button class="btn btn-outline btn-sm" id="btn-lib-rename"><i class="fa-solid fa-pencil"></i> Rename</button>
+                                    <button class="btn btn-danger btn-sm" id="btn-lib-delete"><i class="fa-solid fa-trash"></i> Hapus</button>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            </main>
+
+            <!-- ===================================================================== -->
+            <!-- WORKSPACE 2: DEVELOP / STUDIO EDITOR (PENGEMBANGAN FOTO)              -->
+            <!-- ===================================================================== -->
+            <main class="app-view active" id="view-develop">
+                <div class="editor-viewport">
+                    
+                    <!-- A. TOP CONTROL BAR (BEFORE/AFTER TOGGLE & ZOOM) -->
+                    <div class="editor-canvas-toolbar">
+                        <div class="canvas-tool-group">
+                            <button class="btn-tool-toggle" id="btn-toggle-split" title="Bandingkan Foto Sebelum & Sesudah Edit (Before / After)">
+                                <i class="fa-solid fa-columns"></i>
+                                <span>Bandingkan (Before / After)</span>
+                            </button>
+                            <button class="btn-tool-toggle" id="btn-reset-develop" title="Kembalikan semua slider nada ke posisi awal">
+                                <i class="fa-solid fa-rotate-left"></i>
+                                <span>Reset Tuning</span>
+                            </button>
+                        </div>
+                        <div class="canvas-info-chip" id="develop-canvas-meta">100% | sRGB</div>
+                    </div>
+
+                    <!-- B. MAIN CANVAS CONTAINER -->
+                    <div class="canvas-container" id="develop-canvas-wrapper">
+                        <canvas id="photo-canvas"></canvas>
+                        <canvas id="before-canvas" style="display: none;"></canvas>
+                        <div class="empty-state" id="empty-state-msg">
+                            <i class="fa-regular fa-image"></i>
+                            <p>Pilih foto dari filmstrip di bawah atau buka dari Library</p>
+                        </div>
+                    </div>
+
+                    <!-- C. BOTTOM FILMSTRIP (PERSIS LIGHTROOM) -->
+                    <div class="bottom-filmstrip">
+                        <div class="filmstrip-nav-btn" id="filmstrip-left"><i class="fa-solid fa-chevron-left"></i></div>
+                        <div class="filmstrip-track" id="filmstrip-track">
+                            <!-- Thumbnails diisi otomatis via JS -->
+                        </div>
+                        <div class="filmstrip-nav-btn" id="filmstrip-right"><i class="fa-solid fa-chevron-right"></i></div>
+                        <label class="btn-import-filmstrip">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Impor</span>
+                            <input type="file" id="input-import-photos" multiple accept="image/*" style="display: none;">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- D. INSPECTOR PANEL (KANAN) - SLIDERS DEVELOP LENGKAP -->
+                <aside class="inspector-panel">
+                    
+                    <!-- HEADER FOTO AKTIF -->
+                    <div class="active-photo-card">
+                        <div class="photo-info-main">
+                            <i class="fa-regular fa-image"></i>
+                            <div class="photo-name-wrapper">
+                                <span class="active-photo-title" id="active-filename-display">Pilih Foto</span>
+                                <span class="active-photo-size" id="active-filesize-display">- MB</span>
+                            </div>
+                        </div>
+                        <div class="photo-card-actions">
+                            <button class="btn btn-sm btn-outline btn-rename" id="btn-rename-active-photo" title="Ubah Nama File Foto Ini">
+                                <i class="fa-solid fa-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger btn-delete" id="btn-delete-active-photo" title="Hapus Foto Ini dari Katalog">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- PRESETS BAR FOTOGRAFI -->
+                    <div class="panel-section">
+                        <div class="panel-section-title">Presets Gaya</div>
+                        <div class="presets-bar">
+                            <button class="chip active" data-preset="normal">Asli</button>
+                            <button class="chip" data-preset="vibrant">Vibrant</button>
+                            <button class="chip" data-preset="bw">B&W Kontras</button>
+                            <button class="chip" data-preset="vintage">Vintage Warm</button>
+                            <button class="chip" data-preset="cinematic">Cinematic Teal</button>
+                            <button class="chip" data-preset="moody">Moody Dark</button>
+                        </div>
+                    </div>
+
+                    <!-- 1. LIGHT TUNING (EXPOSURE, CONTRAST, HIGHLIGHTS, SHADOWS) -->
+                    <div class="panel-section">
+                        <div class="panel-section-title">Pencahayaan (Light)</div>
+                        
+                        <div class="slider-group">
+                            <div class="slider-label"><span>Exposure</span><span id="val-brightness">+0.00</span></div>
+                            <input type="range" id="slider-brightness" min="-100" max="100" value="0">
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-label"><span>Contrast</span><span id="val-contrast">0</span></div>
+                            <input type="range" id="slider-contrast" min="-100" max="100" value="0">
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-label"><span>Highlights</span><span id="val-highlights">0</span></div>
+                            <input type="range" id="slider-highlights" min="-100" max="100" value="0">
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-label"><span>Shadows</span><span id="val-shadows">0</span></div>
+                            <input type="range" id="slider-shadows" min="-100" max="100" value="0">
+                        </div>
+                    </div>
+
+                    <!-- 2. COLOR TUNING (TEMPERATURE, TINT, SATURATION, SEPIA) -->
+                    <div class="panel-section">
+                        <div class="panel-section-title">Warna (Color)</div>
+
+                        <div class="slider-group">
+                            <div class="slider-label"><span>Temperature</span><span id="val-temperature">5500 K</span></div>
+                            <input type="range" id="slider-temperature" min="-50" max="50" value="0">
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-label"><span>Tint (Tint / Hijau-Magenta)</span><span id="val-tint">0</span></div>
+                            <input type="range" id="slider-tint" min="-50" max="50" value="0">
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-label"><span>Saturation</span><span id="val-saturation">0</span></div>
+                            <input type="range" id="slider-saturation" min="-100" max="100" value="0">
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-label"><span>Warmth (Sepia)</span><span id="val-sepia">0%</span></div>
+                            <input type="range" id="slider-sepia" min="0" max="100" value="0">
+                        </div>
+                    </div>
+
+                    <!-- 3. TRANSFORM & GEOMETRY (ROTATION & FLIP) -->
+                    <div class="panel-section">
+                        <div class="panel-section-title">Transformasi & Geometri</div>
+                        <div class="transform-btn-grid">
+                            <button class="btn btn-outline btn-sm" id="btn-rotate-ccw" title="Putar 90° Berlawanan Jarum Jam"><i class="fa-solid fa-rotate-left"></i> -90°</button>
+                            <button class="btn btn-outline btn-sm" id="btn-rotate-cw" title="Putar 90° Searah Jarum Jam"><i class="fa-solid fa-rotate-right"></i> +90°</button>
+                            <button class="btn btn-outline btn-sm" id="btn-flip-h" title="Balik Horizontal"><i class="fa-solid fa-arrows-left-right"></i> Flip H</button>
+                            <button class="btn btn-outline btn-sm" id="btn-flip-v" title="Balik Vertikal"><i class="fa-solid fa-arrows-up-down"></i> Flip V</button>
+                        </div>
+                    </div>
+
+                    <!-- 4. PENGAMANAN BERKAS DISK & BLOCKCHAIN (COVERT FEATURE) -->
+                    <div class="panel-section covert-menu-item" id="section-file-lock">
+                        <div class="panel-section-title secret-accent">
+                            <i class="fa-solid fa-file-shield"></i>
+                            <span>Kunci Berkas Disk (ChaCha20)</span>
+                        </div>
+                        <div class="card-inner">
+                            <div class="inner-header">
+                                <span>Status Berkas:</span>
+                                <span id="label-active-lock-status" class="status-unlocked">UNLOCKED</span>
+                            </div>
+                            <p class="panel-desc">Kunci foto asli di disk menjadi file terenkripsi (.enc) dengan ChaCha20-Poly1305.</p>
+                            <div class="form-item" style="margin-top: 6px;">
+                                <input type="password" id="input-lock-passphrase" placeholder="Passphrase ChaCha20..." value="BrankasDarkroom2026!">
+                            </div>
+                            <button class="btn btn-sm btn-outline btn-block" id="btn-lock-active-file" style="margin-top: 6px;">
+                                <i class="fa-solid fa-lock"></i> Kunci / Buka Berkas Disk
+                            </button>
+                            <button class="btn btn-sm btn-primary btn-block" id="btn-seal-active-blockchain" style="margin-top: 6px;">
+                                <i class="fa-solid fa-cube"></i> Catat Hash ke Blockchain
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- SHORTCUT MENU KE EXPORT -->
+                    <button class="btn btn-primary btn-block" id="btn-quick-goto-export" style="margin-top: 8px;">
+                        <i class="fa-solid fa-file-export"></i> Lanjut ke Ruang Ekspor
+                    </button>
+                </aside>
+            </main>
+
+            <!-- ===================================================================== -->
+            <!-- WORKSPACE 3: TRANSFER (TWO-PANEL WORKSPACE & FULL BOTTOM RESULT)      -->
+            <!-- ===================================================================== -->
+            <main class="app-view" id="view-transfer" style="display: none;">
+                <div class="transfer-workspace">
+                    
+                    <!-- AREA ATAS: 2 PANEL SPLIT (KIRI 58%, KANAN 42%) -->
+                    <div class="transfer-split-container">
+                        
+                        <!-- PANEL KIRI (58%): COVER IMAGE, PREVIEW & KAPASITAS LSB -->
+                        <div class="transfer-left-panel">
+                            <div class="panel-box-header">
+                                <div class="box-title">
+                                    <i class="fa-solid fa-image"></i>
+                                    <span>Cover Image & Kapasitas Steganografi</span>
+                                </div>
+                                <div class="box-actions">
+                                    <select id="transfer-cover-picker" class="dropdown-picker" title="Pilih foto pembawa dari Library">
+                                        <option value="">-- Pilih Cover dari Library --</option>
+                                    </select>
+                                    <label class="btn btn-sm btn-outline btn-upload-cover" title="Unggah cover dari harddisk">
+                                        <i class="fa-solid fa-upload"></i> Unggah Cover
+                                        <input type="file" id="transfer-upload-cover" accept="image/*" style="display: none;">
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Preview Box Gambar Cover -->
+                            <div class="cover-preview-wrapper">
+                                <img id="transfer-cover-img" src="" alt="Cover preview" style="display: none;">
+                                <div class="cover-empty-placeholder" id="transfer-cover-empty">
+                                    <i class="fa-regular fa-image"></i>
+                                    <p>Pilih foto cover dari library atau unggah citra pembawa baru</p>
+                                </div>
+                            </div>
+
+                            <!-- Kartu Metadata Teknis Citra Pembawa -->
+                            <div class="cover-technical-meta" id="transfer-technical-meta">
+                                <div class="meta-item">
+                                    <span class="meta-label">Nama Berkas</span>
+                                    <span class="meta-val" id="trans-meta-filename">-</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">Format / Resolusi</span>
+                                    <span class="meta-val" id="trans-meta-dimensions">-</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">Ukuran Berkas</span>
+                                    <span class="meta-val" id="trans-meta-filesize">-</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">Status Kelayakan</span>
+                                    <span class="meta-badge badge-neutral" id="trans-meta-suitability">Menunggu cover</span>
+                                </div>
+                            </div>
+
+                            <!-- Meteran Kapasitas Muatan LSB -->
+                            <div class="capacity-meter-box">
+                                <div class="capacity-header">
+                                    <span>Estimasi Kapasitas Muatan LSB (1 bpp RGB)</span>
+                                    <strong id="trans-capacity-text">0 KB</strong>
+                                </div>
+                                <div class="capacity-progress-bar">
+                                    <div class="capacity-fill" id="trans-capacity-fill" style="width: 0%;"></div>
+                                </div>
+                                <div class="capacity-footer-note" id="trans-capacity-note">
+                                    Setiap piksel RGB menampung 3 bit data terenkripsi. Format output berekstensi .PNG tanpa kompresi lossy.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PANEL KANAN (42%): OUTGOING COMPOSER & EKSPOR FOTO MODIFIKASI -->
+                        <div class="transfer-right-panel">
+                            <div class="panel-section-title secret-accent" style="margin-bottom: 4px;">
+                                <i class="fa-solid fa-pen-nib"></i>
+                                <span>Komposer & Ekspor Foto Termodifikasi</span>
+                            </div>
+                            <p class="panel-desc">Sisipkan muatan terenkripsi ke piksel cover, lalu ekspor hasilnya sebagai foto termodifikasi (.PNG).</p>
+
+                            <div class="payload-type-selector" style="margin-top: 6px;">
+                                <label class="payload-type-radio active" id="radio-payload-text">
+                                    <input type="radio" name="payload_type" value="TEXT" checked>
+                                    <i class="fa-solid fa-comment-dots"></i>
+                                    <span>Pesan Teks</span>
+                                </label>
+                                <label class="payload-type-radio" id="radio-payload-file">
+                                    <input type="radio" name="payload_type" value="FILE">
+                                    <i class="fa-solid fa-file-arrow-up"></i>
+                                    <span>Berkas Biner</span>
+                                </label>
+                                <label class="payload-type-radio" id="radio-payload-image">
+                                    <input type="radio" name="payload_type" value="IMAGE">
+                                    <i class="fa-solid fa-images"></i>
+                                    <span>Citra Rahasia</span>
+                                </label>
+                            </div>
+
+                            <!-- Input Payload: Teks -->
+                            <div class="payload-input-group active" id="group-input-text">
+                                <div class="form-item">
+                                    <div class="label-with-counter">
+                                        <label>Isi Pesan Rahasia / Kawat Sandi:</label>
+                                        <span class="char-counter" id="text-char-counter">0 karakter (0 B)</span>
+                                    </div>
+                                    <textarea id="outgoing-text-content" rows="4" placeholder="Ketik memo rahasia atau instruksi operasional di sini..."></textarea>
+                                </div>
+                                <div class="crypto-profile-info">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                    <span>Profil Kriptografi: <strong>Vigenère Klasik + NIST AES-256-GCM (AEAD Tag 128-bit)</strong></span>
+                                </div>
+                                <div class="form-row-2">
+                                    <div class="form-item">
+                                        <label>Kunci Vigenère (Klasik):</label>
+                                        <input type="text" id="outgoing-vigenere-key" value="JURNALIS">
+                                    </div>
+                                    <div class="form-item">
+                                        <label>Passphrase AES-256-GCM:</label>
+                                        <input type="password" id="outgoing-aes-key" value="OperasiSenyap2026!">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Input Payload: Berkas Biner -->
+                            <div class="payload-input-group" id="group-input-file" style="display: none;">
+                                <div class="form-item">
+                                    <label>Pilih Berkas yang Ingin Disembunyikan (Dokumen / PDF / Zip):</label>
+                                    <input type="file" id="outgoing-binary-file">
+                                </div>
+                                <div class="file-picked-card" id="outgoing-file-picked" style="display: none;">
+                                    <i class="fa-solid fa-file-lines"></i>
+                                    <div class="file-picked-meta">
+                                        <strong id="picked-file-name">-</strong>
+                                        <span id="picked-file-size">- KB | MIME: application/octet-stream</span>
+                                    </div>
+                                </div>
+                                <div class="crypto-profile-info">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                    <span>Profil Kriptografi: <strong>RFC 8439 ChaCha20-Poly1305 AEAD + HKDF SHA-256</strong></span>
+                                </div>
+                                <div class="form-item">
+                                    <label>Passphrase ChaCha20-Poly1305:</label>
+                                    <input type="password" id="outgoing-file-passphrase" value="BerkasRahasia2026!">
+                                </div>
+                            </div>
+
+                            <!-- Input Payload: Citra Rahasia -->
+                            <div class="payload-input-group" id="group-input-image" style="display: none;">
+                                <div class="form-item">
+                                    <label>Pilih Citra Rahasia yang Ingin Disembunyikan:</label>
+                                    <input type="file" id="outgoing-secret-image" accept="image/*">
+                                </div>
+                                <div class="image-picked-preview" id="outgoing-img-picked" style="display: none;">
+                                    <img id="picked-img-thumb" src="" alt="Secret thumb">
+                                    <div class="img-picked-meta">
+                                        <strong id="picked-img-name">-</strong>
+                                        <span id="picked-img-dims">- x - px | - KB</span>
+                                    </div>
+                                </div>
+                                <div class="crypto-profile-info">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                    <span>Profil Kriptografi: <strong>Citra Biner ChaCha20-Poly1305 + Framing Header V2</strong></span>
+                                </div>
+                                <div class="form-item">
+                                    <label>Passphrase Proteksi Citra:</label>
+                                    <input type="password" id="outgoing-img-passphrase" value="FotoDecoy2026!">
+                                </div>
+                            </div>
+
+                            <!-- Tombol Eksekusi Outgoing -->
+                            <button class="btn btn-primary btn-block btn-execute-transfer" id="btn-execute-outgoing" style="margin-top: auto;">
+                                <i class="fa-solid fa-file-export"></i> Enkripsi & Ekspor Foto Termodifikasi (PNG)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- AREA BAWAH: FULL-WIDTH RESULT PANEL (MASTER PROMPT SEKSI 5) -->
+                    <div class="transfer-bottom-panel">
+                        <div class="bottom-panel-header">
+                            <div class="result-status-title">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>Hasil Ekspor Foto Termodifikasi (Steganografi LSB)</span>
+                            </div>
+                            <span class="badge badge-neutral" id="trans-result-badge">Menunggu Proses</span>
+                        </div>
+
+                        <div class="bottom-panel-body" id="trans-result-body">
+                            <!-- Status Awal -->
+                            <div class="result-placeholder" id="trans-result-empty">
+                                <i class="fa-solid fa-terminal"></i>
+                                <span>Belum ada proses transfer yang dijalankan. Pilih foto cover dan muatan di atas untuk memulai ekspor foto termodifikasi.</span>
+                            </div>
+
+                            <!-- Hasil Outgoing Sukses -->
+                            <div class="result-outgoing-success" id="trans-result-outgoing" style="display: none;">
+                                <div class="result-card-info">
+                                    <div class="res-badge-success"><i class="fa-solid fa-circle-check"></i> Foto Berhasil Dimodifikasi & Diekspor ke Katalog!</div>
+                                    <p id="out-result-desc">Payload biner berhasil dienkripsi dan disisipkan ke piksel LSB. Berkas telah didaftarkan ke katalog foto.</p>
+                                    <div class="res-details-grid">
+                                        <div>Nama Berkas: <strong id="out-res-filename">-</strong></div>
+                                        <div>Kapasitas Terpakai: <strong id="out-res-cap">-</strong></div>
+                                        <div>Byte Muatan: <strong id="out-res-bytes">-</strong></div>
+                                    </div>
+                                </div>
+                                <div class="result-card-actions-row">
+                                    <a href="#" class="btn btn-primary" id="btn-download-outgoing-stego" download>
+                                        <i class="fa-solid fa-download"></i> Unduh Foto (PNG)
+                                    </a>
+                                    <button class="btn btn-outline" id="btn-transfer-goto-develop">
+                                        <i class="fa-solid fa-sliders"></i> Buka di Develop
+                                    </button>
+                                    <button class="btn btn-success" id="btn-transfer-goto-decrypt">
+                                        <i class="fa-solid fa-key"></i> Buka di Dekripsi
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Tampilan Error Terpilih -->
+                            <div class="result-error-box" id="trans-result-error" style="display: none;">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <div class="err-text">
+                                    <strong id="trans-error-title">Gagal Memproses Payload</strong>
+                                    <p id="trans-error-desc">Tidak ditemukan payload Darkroom yang valid atau kapasitas cover tidak mencukupi.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+
+            <!-- ===================================================================== -->
+            <!-- WORKSPACE 6: DEKRIPSI & EKSTRAKTOR STEGANOGRAFI (COVERT FEATURE)      -->
+            <!-- ===================================================================== -->
+            <main class="app-view" id="view-decrypt" style="display: none;">
+                <div class="outer-view-container">
+                    <div class="outer-header">
+                        <h2><i class="fa-solid fa-key"></i> Dekripsi & Ekstraktor Steganografi</h2>
+                        <p>Bongkar muatan rahasia dari foto bersteganografi: otomatis mendeteksi apakah berisi teks ter-super enkripsi, berkas dokumen biner, atau citra rahasia!</p>
+                    </div>
+
+                    <div class="decrypt-panel-grid">
+                        <!-- Form Dekripsi (Kiri) -->
+                        <div class="decrypt-form-card">
+                            <div class="form-item">
+                                <label>Pilih Foto Stego dari Katalog:</label>
+                                <select id="decrypt-catalog-picker" class="dropdown-picker" style="width: 100%;">
+                                    <option value="">-- Pilih dari Katalog Foto --</option>
+                                </select>
+                            </div>
+
+                            <div style="text-align: center; font-size: 10.5px; color: var(--text-muted); margin: 6px 0;">— ATAU UNGGAH BERKAS LUAR —</div>
+
+                            <div class="form-item">
+                                <label>Pilih Berkas Citra Bersteganografi (.PNG / .JPG):</label>
+                                <input type="file" id="decrypt-file-input" accept="image/*">
+                            </div>
+
+                            <div class="crypto-profile-info" style="margin: 8px 0;">
+                                <i class="fa-solid fa-microchip"></i>
+                                <span>Parser Header Otomatis: Memeriksa Magic Byte <code>DKRM\x02</code>, tipe payload, dan memverifikasi integritas tag otentikasi NIST AES-GCM / Poly1305.</span>
+                            </div>
+
+                            <div class="form-row-2">
+                                <div class="form-item">
+                                    <label>Kunci Vigenère (Klasik):</label>
+                                    <input type="text" id="decrypt-vigenere-key" value="JURNALIS">
+                                </div>
+                                <div class="form-item">
+                                    <label>Passphrase AES / ChaCha20:</label>
+                                    <input type="password" id="decrypt-passphrase" value="OperasiSenyap2026!">
+                                </div>
+                            </div>
+
+                            <button class="btn btn-success btn-block btn-lg" id="btn-execute-decrypt" style="margin-top: 10px;">
+                                <i class="fa-solid fa-barcode"></i> Pindai & Bongkar Muatan Rahasia
+                            </button>
+                        </div>
+
+                        <!-- Panel Hasil Dekripsi (Kanan) -->
+                        <div class="decrypt-result-card">
+                            <div class="decrypt-card-header">
+                                <i class="fa-solid fa-clipboard-check"></i>
+                                <span>Hasil Dekripsi & Verifikasi Otentikasi</span>
+                            </div>
+
+                            <div class="decrypt-card-body">
+                                <!-- Status Awal -->
+                                <div class="result-placeholder" id="decrypt-placeholder">
+                                    <i class="fa-solid fa-key" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
+                                    <p>Pilih foto bersteganografi dan klik tombol untuk membongkar muatan rahasia.</p>
+                                </div>
+
+                                <!-- Box Hasil Teks -->
+                                <div class="reveal-result-box" id="decrypt-text-box" style="display: none;">
+                                    <div class="inc-text-header">
+                                        <span><i class="fa-solid fa-envelope-open-text"></i> Teks Rahasia Berhasil Didekripsi:</span>
+                                        <button class="btn btn-outline btn-sm" id="btn-copy-decrypt-text"><i class="fa-solid fa-copy"></i> Salin Teks</button>
+                                    </div>
+                                    <pre class="terminal-box" id="decrypt-text-content">-</pre>
+                                </div>
+
+                                <!-- Box Hasil Berkas Biner -->
+                                <div class="reveal-result-box" id="decrypt-file-box" style="display: none;">
+                                    <div class="inc-file-card">
+                                        <i class="fa-solid fa-file-shield" style="font-size: 32px; color: var(--accent-green);"></i>
+                                        <div class="inc-file-meta">
+                                            <strong id="decrypt-recovered-filename">dokumen_rahasia.pdf</strong>
+                                            <span id="decrypt-recovered-size">124.5 KB | Tag Poly1305 VALID</span>
+                                        </div>
+                                        <a href="#" class="btn btn-success" id="btn-download-decrypt-file" download>
+                                            <i class="fa-solid fa-download"></i> Simpan Berkas Asli
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <!-- Box Hasil Citra Rahasia -->
+                                <div class="reveal-result-box" id="decrypt-img-box" style="display: none;">
+                                    <div class="inc-img-card">
+                                        <img id="decrypt-recovered-img" src="" alt="Recovered secret">
+                                        <div class="inc-img-actions">
+                                            <div class="inc-file-meta">
+                                                <strong id="decrypt-recovered-imgname">citra_rahasia.png</strong>
+                                                <span id="decrypt-recovered-imgdims">100% Cocok Byte-for-Byte</span>
+                                            </div>
+                                            <a href="#" class="btn btn-success" id="btn-download-decrypt-img" download>
+                                                <i class="fa-solid fa-download"></i> Simpan Citra Rahasia
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Box Error -->
+                                <div class="result-error-box" id="decrypt-error-box" style="display: none;">
+                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                    <div class="err-text">
+                                        <strong id="decrypt-error-title">Gagal Membuka Muatan</strong>
+                                        <p id="decrypt-error-desc">Tidak ditemukan payload Darkroom yang valid atau kunci otorisasi salah.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- ===================================================================== -->
+            <!-- WORKSPACE 4: EXPORT (FORMAT, RESOLUSI, KUALITAS)                     -->
+            <!-- ===================================================================== -->
+            <main class="app-view" id="view-export" style="display: none;">
+                <div class="outer-view-container">
+                    <div class="outer-header">
+                        <h2><i class="fa-solid fa-file-export"></i> Ekspor Foto Fotografi</h2>
+                        <p>Simpan hasil pengembangan foto dengan kontrol resolusi, format kompresi, dan kualitas profesional.</p>
+                    </div>
+
+                    <div class="export-grid-layout">
+                        <!-- Preview Kartu Foto yang Akan Diekspor -->
+                        <div class="export-preview-card">
+                            <div class="export-preview-box">
+                                <img id="export-preview-img" src="" alt="Export preview">
+                                <div class="export-empty-placeholder" id="export-empty-msg">
+                                    <i class="fa-regular fa-image"></i>
+                                    <p>Pilih foto aktif di Develop terlebih dahulu untuk mengekspor</p>
+                                </div>
+                            </div>
+                            <div class="export-photo-info" id="export-photo-info" style="display: none;">
+                                <div>Foto Sumber: <strong id="export-src-name">-</strong></div>
+                                <div>Dimensi Asli: <strong id="export-src-dims">-</strong></div>
+                            </div>
+                        </div>
+
+                        <!-- Form Pengaturan Ekspor -->
+                        <div class="export-settings-card">
+                            <div class="form-item">
+                                <label>Format Berkas:</label>
+                                <div class="format-choice-bar">
+                                    <button class="choice-pill active" data-format="JPEG">JPEG (.jpg)</button>
+                                    <button class="choice-pill" data-format="PNG">PNG (.png Lossless)</button>
+                                    <button class="choice-pill" data-format="TIFF">TIFF (.tiff)</button>
+                                </div>
+                            </div>
+
+                            <div class="form-item" id="export-quality-group">
+                                <div class="slider-label">
+                                    <span>Kualitas Kompresi JPEG:</span>
+                                    <strong id="val-export-quality">92%</strong>
+                                </div>
+                                <input type="range" id="slider-export-quality" min="10" max="100" value="92">
+                            </div>
+
+                            <div class="form-item">
+                                <label>Penskalaan Resolusi:</label>
+                                <div class="format-choice-bar">
+                                    <button class="choice-pill active" data-scale="100">100% (Asli)</button>
+                                    <button class="choice-pill" data-scale="75">75%</button>
+                                    <button class="choice-pill" data-scale="50">50%</button>
+                                </div>
+                            </div>
+
+                            <div class="form-item">
+                                <label>Nama Berkas Ekspor:</label>
+                                <input type="text" id="export-custom-filename" placeholder="EXPORT_namafoto.jpg">
+                            </div>
+
+                            <button class="btn btn-primary btn-block btn-lg" id="btn-do-develop-export" style="margin-top: 16px;">
+                                <i class="fa-solid fa-download"></i> Ekspor & Unduh Berkas
+                            </button>
+
+                            <!-- Banner Hasil Ekspor -->
+                            <div class="result-banner" id="export-result-banner" style="display: none;">
+                                <div><i class="fa-solid fa-circle-check"></i> Foto berhasil diekspor!</div>
+                                <a href="#" id="link-download-exported-file" class="btn-download-link" download>Unduh Berkas</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- ===================================================================== -->
+            <!-- WORKSPACE 5: PREFERENCES (SECURITY FOUNDATION, DONGLE, BLOCKCHAIN)    -->
+            <!-- ===================================================================== -->
+            <main class="app-view" id="view-preferences" style="display: none;">
+                <div class="outer-view-container">
+                    <div class="outer-header-flex">
+                        <div>
+                            <h2><i class="fa-solid fa-gear"></i> Preferences & Security Foundation</h2>
+                            <p>Status otorisasi sesi, pemantauan hardware dongle, dan buku besar integritas rantai blok.</p>
+                        </div>
+                        <button class="btn btn-danger btn-sm" id="btn-pref-panic">
+                            <i class="fa-solid fa-skull-crossbones"></i> Panic Session Lock
+                        </button>
+                    </div>
+
+                    <div class="pref-cards-grid">
+                        <!-- Kartu 1: Status Sesi State Machine -->
+                        <div class="pref-card">
+                            <div class="pref-card-header">
+                                <i class="fa-solid fa-shield-halved"></i>
+                                <h3>Status Sesi (State Machine)</h3>
+                            </div>
+                            <div class="pref-card-body">
+                                <div class="session-state-display">
+                                    <span>Status Saat Ini:</span>
+                                    <strong class="state-pill state-public" id="pref-state-badge">PHOTOGRAPHY_WORKSPACE</strong>
+                                </div>
+                                <p class="pref-desc">Fungsi kriptografi Transfer dilindungi oleh token otorisasi in-memory dan pembacaan dongle fisik.</p>
+
+                                <div class="pref-unlock-box" id="pref-unlock-box">
+                                    <div class="form-item">
+                                        <label>Buka Sesi Privat (Password Admin):</label>
+                                        <div class="input-with-button">
+                                            <input type="password" id="pref-unlock-password" placeholder="Masukkan password admin...">
+                                            <button class="btn btn-primary btn-sm" id="btn-pref-do-unlock">
+                                                <i class="fa-solid fa-key"></i> Buka Kunci
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="pref-authorized-box" id="pref-authorized-box" style="display: none;">
+                                    <div class="auth-notice">
+                                        <i class="fa-solid fa-circle-check" style="color: var(--accent-green);"></i>
+                                        <div>
+                                            <strong>Sesi Terotorisasi Sebagai: <span id="pref-auth-user">Agent</span></strong>
+                                            <p style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Token aktif disimpan aman di memori.</p>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-outline btn-sm btn-block" id="btn-pref-lock-session" style="margin-top: 8px;">
+                                        <i class="fa-solid fa-lock"></i> Kunci Sesi Kembali
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Kartu 2: Hardware Dongle & Mode Lab -->
+                        <div class="pref-card">
+                            <div class="pref-card-header">
+                                <i class="fa-solid fa-sd-card"></i>
+                                <h3>Hardware Dongle SD Card</h3>
+                            </div>
+                            <div class="pref-card-body">
+                                <div class="dongle-detail-status">
+                                    <div>Pembaca Fisik: <strong id="pref-dongle-drive">Tidak Terdeteksi</strong></div>
+                                    <div>Kunci Kriptografis: <strong id="pref-dongle-msg">darkroom.key</strong></div>
+                                </div>
+                                <div class="virtual-dongle-toggle-box">
+                                    <label class="switch-container">
+                                        <input type="checkbox" id="toggle-virtual-dongle" checked>
+                                        <span class="switch-slider"></span>
+                                    </label>
+                                    <div class="switch-text">
+                                        <strong>Virtual Dongle (Mode Laboratorium / Testing)</strong>
+                                        <span>Gunakan storage/virtual_dongle/darkroom.key bila slot SD card fisik tidak tersedia.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Kartu 3: Autentikasi Biometrik Wajah AI (YuNet + SFace) -->
+                        <div class="pref-card">
+                            <div class="pref-card-header">
+                                <i class="fa-solid fa-face-smile"></i>
+                                <h3>Autentikasi Biometrik Wajah AI</h3>
+                            </div>
+                            <div class="pref-card-body">
+                                <div class="dongle-detail-status">
+                                    <div>Status Wajah Agen: <strong id="bio-reg-status">Memeriksa...</strong></div>
+                                    <div>Model Neural Network: <strong>OpenCV YuNet + SFace</strong></div>
+                                </div>
+                                
+                                <div class="biometric-camera-box" id="bio-cam-container" style="display: none; margin-top: 6px; position: relative;">
+                                    <video id="bio-video-feed" autoplay playsinline muted style="width: 100%; max-height: 150px; border-radius: 6px; background: #090a0c; object-fit: cover; border: 1px solid var(--border-color);"></video>
+                                    <canvas id="bio-capture-canvas" style="display: none;"></canvas>
+                                </div>
+
+                                <div id="bio-action-feedback" style="font-size: 11px; padding: 6px 10px; border-radius: 4px; display: none; margin-top: 4px;"></div>
+
+                                <div class="btn-group" style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+                                    <button class="btn btn-outline btn-sm" id="btn-bio-toggle-cam">
+                                        <i class="fa-solid fa-camera"></i> <span id="btn-bio-cam-text">Buka Kamera</span>
+                                    </button>
+                                    <button class="btn btn-primary btn-sm" id="btn-bio-register">
+                                        <i class="fa-solid fa-user-plus"></i> Daftarkan Wajah
+                                    </button>
+                                    <button class="btn btn-success btn-sm" id="btn-bio-verify">
+                                        <i class="fa-solid fa-id-badge"></i> Verifikasi Wajah
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" id="btn-bio-reset" title="Hapus data wajah agen">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SEKSI AUDIT BLOCKCHAIN (BUKU BESAR ANTI-MANIPULASI) -->
+                    <div class="pref-blockchain-section">
+                        <div class="outer-header-flex">
+                            <div>
+                                <h3><i class="fa-solid fa-cubes"></i> Buku Besar Rantai Blok Integritas Foto</h3>
+                                <p>Membuktikan keaslian dan mendeteksi apakah bukti foto pernah diubah atau dimanipulasi.</p>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-outline btn-sm" id="btn-audit-blockchain"><i class="fa-solid fa-shield-check"></i> Audit Rantai</button>
+                                <button class="btn btn-danger btn-sm" id="btn-tamper-demo"><i class="fa-solid fa-bug"></i> Simulasi Serangan Hacker</button>
+                            </div>
+                        </div>
+
+                        <div class="blockchain-status-alert" id="bc-status-alert">
+                            <i class="fa-solid fa-circle-check"></i> <span id="bc-status-text">Rantai Blockchain 100% Valid & Terverifikasi (Kriptografi Hash SHA-256)</span>
+                        </div>
+
+                        <div class="chain-cards-grid" id="chain-cards-grid">
+                            <!-- Kartu rantai diisi via JS -->
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL DIALOG: RENAME FILE                                                 -->
+    <!-- ========================================================================= -->
+    <div class="modal-overlay" id="modal-rename" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-pencil"></i> Ubah Nama File</h3>
+                <button class="btn-close" id="btn-close-modal-rename">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 11px; color: #888; margin-bottom: 8px;">Ubah nama file agar mudah dikenali di katalog:</p>
+                <div class="form-item">
+                    <label>Nama File Saat Ini:</label>
+                    <input type="text" id="rename-old-name" disabled style="opacity: 0.7;">
+                </div>
+                <div class="form-item" style="margin-top: 8px;">
+                    <label>Nama File Baru:</label>
+                    <input type="text" id="rename-new-name" placeholder="misal: Liputan_Utama.JPG">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline btn-sm" id="btn-cancel-rename">Batal</button>
+                <button class="btn btn-primary btn-sm" id="btn-confirm-rename"><i class="fa-solid fa-check"></i> Simpan Nama</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL DIALOG: AUTHORIZE PRIVATE SESSION                                   -->
+    <!-- ========================================================================= -->
+    <div class="modal-overlay" id="modal-auth-prompt" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-shield-halved"></i> Otorisasi Sesi Privat</h3>
+                <button class="btn-close" id="btn-close-modal-auth">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 11.5px; color: #9aa1ad; margin-bottom: 12px; line-height: 1.4;">
+                    Operasi kriptografi Transfer memerlukan izin sesi privat (AUTHORIZED_PRIVATE). Masukkan kata sandi otorisasi untuk melanjutkan.
+                </p>
+                <div class="form-item">
+                    <label>Kata Sandi Admin / Agen:</label>
+                    <input type="password" id="modal-auth-password" placeholder="Masukkan kata sandi...">
+                </div>
+                <div id="modal-auth-error" style="color: var(--accent-red); font-size: 11px; margin-top: 6px; display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline btn-sm" id="btn-cancel-auth">Batal</button>
+                <button class="btn btn-primary btn-sm" id="btn-confirm-auth"><i class="fa-solid fa-unlock"></i> Otorisasi Sekarang</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

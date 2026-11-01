@@ -1,0 +1,7 @@
+{
+    "username": "Jaka",
+    "password_hash": "046d02b9687a52ad765943e7657b3fb0f5b6a18ba971ab458f49a5ae527c9c3a",
+    "salt": "da8801c8a60e3168478a5af320106dcb",
+    "algorithm": "PBKDF2-HMAC-SHA256",
+    "iterations": 100000
+}
