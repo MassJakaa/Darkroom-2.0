@@ -49,3 +49,58 @@ Materi/
 Tugas*/
 *.docx
 *Tugas*.pdf
+
+# Local environment files and credentials (keep safe templates commit-able)
+.env
+.env.*
+*.env
+!.env.example
+!.env.sample
+!.env.template
+*.secret
+*.secrets
+secrets/
+credentials/
+credentials.json
+secrets.json
+token.json
+
+# Private keys and certificates
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+
+# Local authentication, biometric, database, and ledger state
+Darkroom/storage/virtual_dongle/*
+!Darkroom/storage/virtual_dongle/.gitkeep
+Darkroom/storage/agent_auth.json
+Darkroom/storage/agent_face_embedding.npy
+Darkroom/storage/photo_blockchain.json
+*.db
+*.sqlite
+*.sqlite3
+
+# Personal and generated catalog photos (other project images remain trackable)
+Darkroom/storage/catalog/*
+!Darkroom/storage/catalog/.gitkeep
+
+# Runtime caches, reports, and generated build/test output
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+build/
+dist/
+*.egg-info/
+Darkroom/storage/logs/
+Darkroom/storage/cache/
+Darkroom/storage/tmp/

@@ -13,7 +13,7 @@
 </head>
 <body class="mode-lightroom">
 
-    <div class="app-layout">
+    <div class="app-layout app-grid-shell">
         <!-- ========================================================================= -->
         <!-- 1. LEFT SIDEBAR NAVIGATION (LIGHTROOM WORKSPACE ARCHITECTURE)             -->
         <!-- ========================================================================= -->
@@ -85,7 +85,7 @@
         <!-- ========================================================================= -->
         <!-- 2. MAIN APPLICATION CONTENT AREA                                          -->
         <!-- ========================================================================= -->
-        <div class="app-main-content">
+        <div class="app-main-content app-workspace-region">
 
             <!-- ===================================================================== -->
             <!-- WORKSPACE 1: LIBRARY (KATALOG, FILTER, ASSET MANAGEMENT)              -->
@@ -158,23 +158,7 @@
             <!-- ===================================================================== -->
             <main class="app-view active" id="view-develop">
                 <div class="editor-viewport">
-                    
-                    <!-- A. TOP CONTROL BAR (BEFORE/AFTER TOGGLE & ZOOM) -->
-                    <div class="editor-canvas-toolbar">
-                        <div class="canvas-tool-group">
-                            <button class="btn-tool-toggle" id="btn-toggle-split" title="Bandingkan Foto Sebelum & Sesudah Edit (Before / After)">
-                                <i class="fa-solid fa-columns"></i>
-                                <span>Bandingkan (Before / After)</span>
-                            </button>
-                            <button class="btn-tool-toggle" id="btn-reset-develop" title="Kembalikan semua slider nada ke posisi awal">
-                                <i class="fa-solid fa-rotate-left"></i>
-                                <span>Reset Tuning</span>
-                            </button>
-                        </div>
-                        <div class="canvas-info-chip" id="develop-canvas-meta">100% | sRGB</div>
-                    </div>
-
-                    <!-- B. MAIN CANVAS CONTAINER -->
+                    <!-- MAIN CANVAS CONTAINER -->
                     <div class="canvas-container" id="develop-canvas-wrapper">
                         <canvas id="photo-canvas"></canvas>
                         <canvas id="before-canvas" style="display: none;"></canvas>
@@ -184,7 +168,7 @@
                         </div>
                     </div>
 
-                    <!-- C. BOTTOM FILMSTRIP (PERSIS LIGHTROOM) -->
+                    <!-- BOTTOM FILMSTRIP (PERSIS LIGHTROOM) -->
                     <div class="bottom-filmstrip">
                         <div class="filmstrip-nav-btn" id="filmstrip-left"><i class="fa-solid fa-chevron-left"></i></div>
                         <div class="filmstrip-track" id="filmstrip-track">
@@ -219,6 +203,21 @@
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         </div>
+                    </div>
+
+                    <!-- FIX: semua kontrol editor berada dalam panel kanan -->
+                    <div class="editor-canvas-toolbar">
+                        <div class="canvas-tool-group">
+                            <button class="btn-tool-toggle" id="btn-toggle-split" title="Bandingkan Foto Sebelum & Sesudah Edit (Before / After)">
+                                <i class="fa-solid fa-columns"></i>
+                                <span>Bandingkan (Before / After)</span>
+                            </button>
+                            <button class="btn-tool-toggle" id="btn-reset-develop" title="Kembalikan semua slider nada ke posisi awal">
+                                <i class="fa-solid fa-rotate-left"></i>
+                                <span>Reset Tuning</span>
+                            </button>
+                        </div>
+                        <div class="canvas-info-chip" id="develop-canvas-meta">100% | sRGB</div>
                     </div>
 
                     <!-- PRESETS BAR FOTOGRAFI -->
@@ -878,8 +877,10 @@
                             <i class="fa-solid fa-circle-check"></i> <span id="bc-status-text">Rantai Blockchain 100% Valid & Terverifikasi (Kriptografi Hash SHA-256)</span>
                         </div>
 
-                        <div class="chain-cards-grid" id="chain-cards-grid">
-                            <!-- Kartu rantai diisi via JS -->
+                        <div class="chain-cards-scroll">
+                            <div class="chain-cards-grid" id="chain-cards-grid">
+                                <!-- Kartu rantai diisi via JS -->
+                            </div>
                         </div>
                     </div>
 

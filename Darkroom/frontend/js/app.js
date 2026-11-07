@@ -51,6 +51,10 @@ const appState = {
 
 let renameTargetFilename = null;
 let pendingAuthCallback = null;
+// # FIX: integrasi biometrik wajib
+let authBioStream = null;
+let authBiometricImageBase64 = null;
+let authBiometricMatch = false;
 
 // ==============================================================================
 // 1. DOM READY & INITIALIZATION
@@ -107,26 +111,8 @@ async function toggleAppMode(targetMode) {
         if (brandBadge) brandBadge.textContent = "Dk";
         if (modeText) modeText.textContent = "Mode: Darkroom";
 
-        // Auto-unlock sesi di background jika belum terotorisasi
-        // Memenuhi instruksi user: "ubah dari lightroom ke darkroom tanpa login"
-        if (appState.sessionState !== "AUTHORIZED_PRIVATE") {
-            try {
-                const res = await fetch("/api/session/unlock", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ password: "admin", biometric_confirmed: true })
-                });
-                const data = await res.json();
-                if (data.token) {
-                    appState.sessionToken = data.token;
-                    appState.username = data.username;
-                    appState.sessionState = "AUTHORIZED_PRIVATE";
-                    await checkSessionStatus();
-                }
-            } catch (err) {
-                console.warn("Auto-unlock mode darkroom:", err);
-            }
-        }
+        // # FIX: penyesuaian payload & state
+        // Mode hanya mengganti tampilan; operasi privat meminta autentikasi lewat modal.
     } else {
         // Mode: Lightroom (Kamuflase Publik)
         document.body.className = "mode-lightroom";
@@ -233,8 +219,23 @@ function initSessionManager() {
                 alert("Masukkan password admin!");
                 return;
             }
-            await executeUnlock(pwd);
-            if (pwdInput) pwdInput.value = "";
+            const imageBase64 = captureFrameBase64();
+            if (!imageBase64) {
+                alert("Aktifkan kamera dan pindai wajah sebelum membuka sesi privat!");
+                if (pwdInput) pwdInput.value = "";
+                return;
+            }
+            try {
+                const biometric = await verifyBiometricImage(imageBase64);
+                if (biometric.is_match !== true) {
+                    throw new Error(biometric.message || "Wajah tidak cocok.");
+                }
+                await executeUnlock(pwd, imageBase64, biometric.is_match);
+            } catch (err) {
+                alert("Autentikasi biometrik gagal: " + err.message);
+            } finally {
+                if (pwdInput) pwdInput.value = "";
+            }
         });
     }
 
@@ -255,7 +256,16 @@ async function checkSessionStatus() {
         const res = await fetch("/api/session/status", { headers });
         const data = await res.json();
 
-        appState.sessionState = data.current_state;
+        // # FIX: penyesuaian payload & state
+        const isAuthorized =
+            data.state === "AUTHORIZED_PRIVATE" &&
+            data.is_authorized === true;
+
+        appState.sessionState = isAuthorized
+            ? data.state
+            : data.state === "SESSION_LOCKED"
+                ? data.state
+                : "PHOTOGRAPHY_WORKSPACE";
 
         // Update indikator dongle di sidebar & preferences
         const dongleIndicator = document.getElementById("dongle-indicator");
@@ -284,7 +294,7 @@ async function checkSessionStatus() {
         const prefAuthBox = document.getElementById("pref-authorized-box");
         const prefAuthUser = document.getElementById("pref-auth-user");
 
-        if (data.current_state === "AUTHORIZED_PRIVATE") {
+        if (isAuthorized) {
             if (sessionDot) sessionDot.className = "status-dot dot-authorized";
             if (sessionLabel) sessionLabel.textContent = "Sesi: Privat Aktif";
             if (sessionIcon) sessionIcon.className = "fa-solid fa-lock-open";
@@ -294,8 +304,8 @@ async function checkSessionStatus() {
             }
             if (prefUnlockBox) prefUnlockBox.style.display = "none";
             if (prefAuthBox) prefAuthBox.style.display = "block";
-            if (prefAuthUser) prefAuthUser.textContent = data.active_user || "Agent";
-        } else if (data.current_state === "SESSION_LOCKED") {
+            if (prefAuthUser) prefAuthUser.textContent = data.username || "Agent";
+        } else if (data.state === "SESSION_LOCKED") {
             appState.sessionToken = null;
             if (sessionDot) sessionDot.className = "status-dot dot-locked";
             if (sessionLabel) sessionLabel.textContent = "Sesi: TERKUNCI";
@@ -324,12 +334,33 @@ async function checkSessionStatus() {
     }
 }
 
-async function executeUnlock(password) {
+async function verifyBiometricImage(imageBase64) {
+    if (!imageBase64) throw new Error("Pindai wajah terlebih dahulu.");
+    const res = await fetch("/api/auth/biometric/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_base64: imageBase64 })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || data.message || "Verifikasi wajah gagal!");
+    return data;
+}
+
+// # FIX: integrasi biometrik wajib
+async function executeUnlock(password, imageBase64, isMatch) {
+    if (!imageBase64 || isMatch !== true) {
+        alert("Password dan hasil scan wajah yang cocok wajib diisi untuk membuka sesi privat.");
+        return false;
+    }
     try {
         const res = await fetch("/api/session/unlock", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ password: password, biometric_confirmed: true })
+            body: JSON.stringify({
+                password: password,
+                is_match: isMatch,
+                image_base64: imageBase64
+            })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "Otorisasi gagal!");
@@ -910,10 +941,36 @@ function renderCanvas() {
     const s = 100 + appState.filters.saturation;
     const sp = appState.filters.sepia;
     const hue = appState.filters.tint * 1.5;
+    const highlights = appState.filters.highlights / 100;
+    const shadows = appState.filters.shadows / 100;
+    const temperature = appState.filters.temperature;
 
     ctx.filter = `brightness(${b}%) contrast(${c}%) saturate(${s}%) sepia(${sp}%) hue-rotate(${hue}deg)`;
     ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
     ctx.restore();
+
+    // # FIX: slider Highlights, Shadows, dan Temperature diterapkan ke piksel canvas.
+    if (highlights !== 0 || shadows !== 0 || temperature !== 0) {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels = imageData.data;
+        const temperatureShift = temperature * 0.45;
+
+        for (let i = 0; i < pixels.length; i += 4) {
+            const red = pixels[i];
+            const green = pixels[i + 1];
+            const blue = pixels[i + 2];
+            const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+            const highlightWeight = Math.max(0, Math.min(1, (luminance - 64) / 176));
+            const shadowWeight = Math.max(0, Math.min(1, (192 - luminance) / 160));
+            const toneShift = highlights * 48 * highlightWeight + shadows * 48 * shadowWeight;
+
+            pixels[i] = Math.max(0, Math.min(255, red + toneShift + temperatureShift));
+            pixels[i + 1] = Math.max(0, Math.min(255, green + toneShift + temperatureShift * 0.08));
+            pixels[i + 2] = Math.max(0, Math.min(255, blue + toneShift - temperatureShift));
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+    }
 
     // RENDER BEFORE CANVAS (JIKA SPLIT VIEW AKTIF)
     if (appState.isSplitView && beforeCanvas) {
@@ -922,6 +979,49 @@ function renderCanvas() {
         const bCtx = beforeCanvas.getContext("2d");
         bCtx.drawImage(img, 0, 0);
     }
+}
+
+// # FIX: mengenali stego Darkroom agar ekspor mengambil byte sumber, bukan canvas yang diedit.
+function isDarkroomStegoPhoto(photo) {
+    if (!photo) return false;
+    const filename = String(photo.filename || "");
+    if (/^(MODIFIED_STEGO_|STEGO_|DECOY_)/i.test(filename)) return true;
+
+    const img = appState.activeImg;
+    if (!img || img.naturalWidth < 14 || img.naturalHeight < 1) return false;
+    try {
+        const probeCanvas = document.createElement("canvas");
+        probeCanvas.width = 14;
+        probeCanvas.height = 1;
+        const probeCtx = probeCanvas.getContext("2d", { willReadFrequently: true });
+        probeCtx.drawImage(img, 0, 0, 14, 1, 0, 0, 14, 1);
+        const sample = probeCtx.getImageData(0, 0, 14, 1).data;
+        const header = new Uint8Array(5);
+
+        for (let bitIndex = 0; bitIndex < 40; bitIndex++) {
+            const pixelIndex = Math.floor(bitIndex / 3);
+            const channelIndex = bitIndex % 3;
+            const bit = sample[pixelIndex * 4 + channelIndex] & 1;
+            header[bitIndex >> 3] |= bit << (7 - (bitIndex & 7));
+        }
+
+        return String.fromCharCode(...header.slice(0, 4)) === "DKRM" && header[4] === 2;
+    } catch (err) {
+        console.warn("Tidak dapat memeriksa header stego canvas:", err);
+        return false;
+    }
+}
+
+async function fetchImageAsDataUrl(imageUrl) {
+    const res = await fetch(imageUrl);
+    if (!res.ok) throw new Error("Gagal membaca citra sumber untuk menjaga payload steganografi.");
+    const blob = await res.blob();
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("Gagal mengubah citra sumber menjadi payload ekspor."));
+        reader.readAsDataURL(blob);
+    });
 }
 
 // ==============================================================================
@@ -1370,12 +1470,12 @@ async function executeIncomingTransfer() {
 }
 
 function hideAllTransferResults() {
-    document.getElementById("trans-result-empty").style.display = "none";
-    document.getElementById("trans-result-outgoing").style.display = "none";
-    document.getElementById("trans-result-inc-text").style.display = "none";
-    document.getElementById("trans-result-inc-file").style.display = "none";
-    document.getElementById("trans-result-inc-img").style.display = "none";
-    document.getElementById("trans-result-error").style.display = "none";
+    // # FIX: penyesuaian payload & state
+    ["trans-result-empty", "trans-result-outgoing", "trans-result-inc-text", "trans-result-inc-file", "trans-result-inc-img", "trans-result-error"]
+        .forEach(id => {
+            const result = document.getElementById(id);
+            if (result) result.style.display = "none";
+        });
 }
 
 function showTransferError(title, desc) {
@@ -1418,7 +1518,8 @@ function initDecryptWorkspace() {
     }
 
     if (btnExecute) {
-        btnExecute.addEventListener("click", executeDecryptWorkspace);
+        // # FIX: penyesuaian payload & state
+        btnExecute.addEventListener("click", () => ensurePrivateSession(executeDecryptWorkspace));
     }
 
     const btnCopy = document.getElementById("btn-copy-decrypt-text");
@@ -1542,13 +1643,18 @@ async function executeDecryptWorkspace() {
             throw new Error(data.detail || "Gagal membongkar payload!");
         }
 
-        if (data.payload_type === "TEXT") {
+        // # FIX: penyesuaian payload & state
+        if (data.type === "TEXT") {
             if (textBox) {
                 textBox.style.display = "block";
                 const contentEl = document.getElementById("decrypt-text-content");
-                if (contentEl) contentEl.textContent = data.content || "";
+                if (contentEl) {
+                    contentEl.textContent = data.is_decrypted
+                        ? (data.plaintext || "")
+                        : (data.error || data.raw_ciphertext || "Payload teks belum dapat didekripsi.");
+                }
             }
-        } else if (data.payload_type === "FILE") {
+        } else if (data.type === "FILE") {
             if (fileBox) {
                 fileBox.style.display = "block";
                 const nameEl = document.getElementById("decrypt-recovered-filename");
@@ -1556,13 +1662,16 @@ async function executeDecryptWorkspace() {
                 const dlBtn = document.getElementById("btn-download-decrypt-file");
 
                 if (nameEl) nameEl.textContent = data.filename || "file_terekstrak.bin";
-                if (sizeEl) sizeEl.textContent = `${data.file_size_formatted || (data.file_size + ' B')} | Tag Poly1305 VALID`;
+                if (sizeEl) {
+                    const sizeText = data.file_size_formatted || (data.file_size != null ? `${data.file_size} B` : "Berkas berhasil dipulihkan");
+                    sizeEl.textContent = `${sizeText} | Tag Poly1305 VALID`;
+                }
                 if (dlBtn) {
                     dlBtn.href = data.download_url;
                     dlBtn.download = data.filename || "file_terekstrak.bin";
                 }
             }
-        } else if (data.payload_type === "IMAGE") {
+        } else if (data.type === "IMAGE") {
             if (imgBox) {
                 imgBox.style.display = "block";
                 const imgEl = document.getElementById("decrypt-recovered-img");
@@ -1570,11 +1679,11 @@ async function executeDecryptWorkspace() {
                 const dimsEl = document.getElementById("decrypt-recovered-imgdims");
                 const dlBtn = document.getElementById("btn-download-decrypt-img");
 
-                if (imgEl) imgEl.src = data.image_url;
+                if (imgEl) imgEl.src = data.download_url;
                 if (nameEl) nameEl.textContent = data.filename || "citra_rahasia.png";
                 if (dimsEl) dimsEl.textContent = `${data.dimensions || 'Citra Rahasia'} | 100% Cocok Byte-for-Byte`;
                 if (dlBtn) {
-                    dlBtn.href = data.image_url;
+                    dlBtn.href = data.download_url;
                     dlBtn.download = data.filename || "citra_rahasia.png";
                 }
             }
@@ -1671,7 +1780,8 @@ function updateExportFilenameDefault() {
 
     const base = appState.activePhoto.filename.replace(/\.[^/.]+$/, "");
     const ext = appState.exportFormat.toLowerCase() === "jpeg" ? "jpg" : appState.exportFormat.toLowerCase();
-    nameInput.value = `EXPORT_${base}.${ext}`;
+    // # FIX: penyesuaian payload & state
+    nameInput.value = `${base}.${ext}`;
 }
 
 async function executeDevelopExport() {
@@ -1686,12 +1796,17 @@ async function executeDevelopExport() {
 
     try {
         const canvas = document.getElementById("photo-canvas");
-        const imageBase64 = canvas ? canvas.toDataURL("image/png") : null;
-        const customName = document.getElementById("export-custom-filename")?.value.trim() || `EXPORT_${appState.activePhoto.filename}`;
+        // # FIX: untuk stego, ekspor byte sumber PNG agar edit canvas tidak mengubah bit LSB.
+        const preserveStegoPayload = isDarkroomStegoPhoto(appState.activePhoto);
+        const exportFormat = preserveStegoPayload ? "PNG" : appState.exportFormat;
+        const imageBase64 = preserveStegoPayload
+            ? await fetchImageAsDataUrl(appState.activePhoto.url)
+            : (canvas ? canvas.toDataURL("image/png") : null);
+        const customName = document.getElementById("export-custom-filename")?.value.trim() || appState.activePhoto.filename;
 
         const payload = {
             filename: customName,
-            export_format: appState.exportFormat,
+            export_format: exportFormat,
             quality: appState.exportQuality,
             scale_percent: appState.exportScale,
             image_base64: imageBase64
@@ -1706,12 +1821,17 @@ async function executeDevelopExport() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "Gagal mengekspor foto!");
 
+        // # FIX: penyesuaian payload & state
+        data.output_filename = data.filename || customName;
+        data.format = data.format || appState.exportFormat;
+
         const banner = document.getElementById("export-result-banner");
         const link = document.getElementById("link-download-exported-file");
         if (banner && link) {
             banner.style.display = "flex";
             link.href = data.download_url;
-            link.download = data.output_filename;
+            // # FIX: penyesuaian payload & state
+            link.download = data.filename || customName;
         }
 
         alert(`✅ FOTO BERHASIL DIEKSPOR!\n\nNama: ${data.output_filename}\nFormat: ${data.format}\nUkuran: ${data.size_mb} MB\nResolusi: ${data.dimensions}`);
@@ -1756,32 +1876,45 @@ function initPreferencesWorkspace() {
 
     if (btnAudit) {
         btnAudit.addEventListener("click", async () => {
-            await loadBlockchain();
-            alert("Audit Selesai: Seluruh rantai blok terverifikasi 100% otentik!");
+            const audit = await loadBlockchain();
+            if (audit?.is_valid === true) {
+                alert(`Audit valid: ${audit.message}`);
+            } else {
+                alert(`Audit gagal / rantai tidak valid: ${audit?.message || "Tidak ada hasil validasi dari backend."}`);
+            }
         });
     }
 
     if (btnTamper) {
-        btnTamper.addEventListener("click", async () => {
-            try {
-                const res = await fetch("/api/blockchain/simulate-tamper", { method: "POST" });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.detail || "Gagal simulasi serangan!");
+        btnTamper.addEventListener("click", () => {
+            ensurePrivateSession(async () => {
+                try {
+                    // # FIX: token sesi dikirim ke endpoint terproteksi
+                    const headers = {};
+                    if (appState.sessionToken) {
+                        headers["Authorization"] = `Bearer ${appState.sessionToken}`;
+                    }
+                    const res = await fetch("/api/blockchain/simulate-tamper", { method: "POST", headers });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || "Gagal simulasi serangan!");
 
-                const statusAlert = document.getElementById("bc-status-alert");
-                const statusText = document.getElementById("bc-status-text");
-                if (statusAlert) statusAlert.className = "blockchain-status-alert tampered";
-                if (statusText) statusText.innerHTML = `⚠️ PERINGATAN KRITIS: Manipulasi Bukti Terdeteksi! ${data.message}`;
+                    const statusAlert = document.getElementById("bc-status-alert");
+                    const statusText = document.getElementById("bc-status-text");
+                    if (data.tamper_detected === true && data.is_valid === false) {
+                        if (statusAlert) statusAlert.className = "blockchain-status-alert tampered";
+                        if (statusText) statusText.textContent = `Manipulasi terdeteksi oleh verifikasi hash: ${data.message}`;
 
-                const cards = document.querySelectorAll(".chain-block-card");
-                if (cards.length > 1) {
-                    cards[1].classList.add("tampered-card");
+                        const cards = document.querySelectorAll(".chain-block-card");
+                        if (cards.length > 1) cards[1].classList.add("tampered-card");
+                        alert(`Simulasi tamper terdeteksi oleh backend.\n\n${data.message}`);
+                    } else {
+                        await loadBlockchain();
+                        alert(`Backend tidak mengonfirmasi manipulasi: ${data.message || "hasil tidak valid"}`);
+                    }
+                } catch (err) {
+                    alert("Simulasi Tamper: " + err.message);
                 }
-
-                alert(`🚨 SIMULASI SERANGAN HACKER BERHASIL TERDETEKSI!\n\n${data.message}\n\nFungsi hash SHA-256 membuktikan bahwa metadata blok telah dimodifikasi oleh pihak luar!`);
-            } catch (err) {
-                alert("Simulasi Tamper: " + err.message);
-            }
+            });
         });
     }
 }
@@ -1948,20 +2081,19 @@ async function loadBlockchain() {
     const grid = document.getElementById("chain-cards-grid");
     const statusAlert = document.getElementById("bc-status-alert");
     const statusText = document.getElementById("bc-status-text");
-    if (!grid) return;
+    if (!grid) return null;
 
     try {
         const res = await fetch("/api/blockchain/status");
         const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Gagal membaca status blockchain.");
+        if (typeof data.is_valid !== "boolean" || !Array.isArray(data.chain)) {
+            throw new Error("Respons audit blockchain tidak lengkap.");
+        }
 
         if (statusAlert && statusText) {
-            if (data.is_valid) {
-                statusAlert.className = "blockchain-status-alert";
-                statusText.textContent = "Rantai Blockchain 100% Valid & Terverifikasi (Kriptografi Hash SHA-256)";
-            } else {
-                statusAlert.className = "blockchain-status-alert tampered";
-                statusText.textContent = `Peringatan: ${data.message}`;
-            }
+            statusAlert.className = data.is_valid ? "blockchain-status-alert" : "blockchain-status-alert tampered";
+            statusText.textContent = data.message;
         }
 
         grid.innerHTML = "";
@@ -1984,8 +2116,13 @@ async function loadBlockchain() {
             `;
             grid.appendChild(card);
         });
+        return data;
     } catch (err) {
         console.error("Gagal memuat status blockchain:", err);
+        if (statusAlert) statusAlert.className = "blockchain-status-alert tampered";
+        if (statusText) statusText.textContent = `Audit gagal: ${err.message}`;
+        grid.innerHTML = "";
+        return { is_valid: false, message: err.message, chain: [] };
     }
 }
 
@@ -2228,15 +2365,122 @@ function closeRenameModal() {
     if (modal) modal.style.display = "none";
 }
 
+function stopAuthBiometricCamera() {
+    if (authBioStream) {
+        authBioStream.getTracks().forEach(track => track.stop());
+        authBioStream = null;
+    }
+    const video = document.getElementById("modal-bio-video");
+    if (video) {
+        video.srcObject = null;
+        video.style.display = "none";
+    }
+    const cameraButton = document.getElementById("btn-modal-bio-camera");
+    const verifyButton = document.getElementById("btn-modal-bio-verify");
+    if (cameraButton) cameraButton.textContent = "Buka Kamera";
+    if (verifyButton) verifyButton.disabled = true;
+}
+
 function initAuthModal() {
     const modal = document.getElementById("modal-auth-prompt");
     const btnClose = document.getElementById("btn-close-modal-auth");
     const btnCancel = document.getElementById("btn-cancel-auth");
     const btnConfirm = document.getElementById("btn-confirm-auth");
+    const passwordField = document.getElementById("modal-auth-password");
 
-    const closeAuth = () => {
+    // # FIX: integrasi biometrik wajib
+    if (modal && passwordField && !document.getElementById("modal-biometric-section")) {
+        const biometricSection = document.createElement("div");
+        biometricSection.id = "modal-biometric-section";
+        biometricSection.className = "form-item";
+        biometricSection.style.marginBottom = "12px";
+        biometricSection.innerHTML = `
+            <label>Verifikasi wajah wajib:</label>
+            <video id="modal-bio-video" autoplay playsinline muted
+                style="display:none; width:100%; max-height:180px; margin:6px 0; border-radius:6px; background:#090a0c; object-fit:cover;"></video>
+            <canvas id="modal-bio-canvas" style="display:none;"></canvas>
+            <div class="btn-group" style="display:flex; gap:6px; margin-top:6px;">
+                <button type="button" class="btn btn-outline btn-sm" id="btn-modal-bio-camera">Buka Kamera</button>
+                <button type="button" class="btn btn-success btn-sm" id="btn-modal-bio-verify" disabled>Scan & Verifikasi Wajah</button>
+            </div>
+            <div id="modal-bio-feedback" style="font-size:11px; margin-top:6px; color:var(--text-muted);">Wajah yang cocok wajib dipindai sebelum password dikirim.</div>
+        `;
+        passwordField.closest(".form-item")?.insertAdjacentElement("beforebegin", biometricSection);
+    }
+
+    const cameraButton = document.getElementById("btn-modal-bio-camera");
+    const verifyButton = document.getElementById("btn-modal-bio-verify");
+    const video = document.getElementById("modal-bio-video");
+    const canvas = document.getElementById("modal-bio-canvas");
+    const biometricFeedback = document.getElementById("modal-bio-feedback");
+
+    const showBiometricFeedback = (message, isSuccess = false) => {
+        if (!biometricFeedback) return;
+        biometricFeedback.textContent = message;
+        biometricFeedback.style.color = isSuccess ? "var(--accent-green)" : "var(--accent-red)";
+    };
+
+    if (cameraButton) {
+        cameraButton.addEventListener("click", async () => {
+            if (authBioStream) {
+                stopAuthBiometricCamera();
+                authBiometricImageBase64 = null;
+                authBiometricMatch = false;
+                showBiometricFeedback("Kamera ditutup. Pindai wajah sebelum otorisasi.");
+                return;
+            }
+            try {
+                authBioStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 }, audio: false });
+                if (video) {
+                    video.srcObject = authBioStream;
+                    video.style.display = "block";
+                    await video.play();
+                }
+                if (verifyButton) verifyButton.disabled = false;
+                cameraButton.textContent = "Tutup Kamera";
+                showBiometricFeedback("Kamera aktif. Posisikan wajah lalu tekan Scan & Verifikasi.");
+            } catch (err) {
+                showBiometricFeedback("Tidak dapat mengakses webcam: " + err.message);
+            }
+        });
+    }
+
+    if (verifyButton) {
+        verifyButton.addEventListener("click", async () => {
+            if (!video || !canvas || !authBioStream || video.videoWidth === 0) {
+                showBiometricFeedback("Aktifkan kamera dan tunggu frame siap terlebih dahulu.");
+                return;
+            }
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageBase64 = canvas.toDataURL("image/jpeg", 0.85);
+            authBiometricImageBase64 = null;
+            authBiometricMatch = false;
+            verifyButton.disabled = true;
+            try {
+                const result = await verifyBiometricImage(imageBase64);
+                if (result.is_match !== true) {
+                    showBiometricFeedback(result.message || "Wajah tidak cocok. Akses ditolak.");
+                    return;
+                }
+                authBiometricImageBase64 = imageBase64;
+                authBiometricMatch = true;
+                showBiometricFeedback(result.message || "Wajah cocok. Masukkan password untuk melanjutkan.", true);
+            } catch (err) {
+                showBiometricFeedback("Verifikasi wajah gagal: " + err.message);
+            } finally {
+                verifyButton.disabled = false;
+            }
+        });
+    }
+
+    const closeAuth = (clearPending = true) => {
         if (modal) modal.style.display = "none";
-        pendingAuthCallback = null;
+        if (clearPending) pendingAuthCallback = null;
+        stopAuthBiometricCamera();
+        authBiometricImageBase64 = null;
+        authBiometricMatch = false;
     };
 
     if (btnClose) btnClose.addEventListener("click", closeAuth);
@@ -2254,13 +2498,23 @@ function initAuthModal() {
                 return;
             }
 
-            const ok = await executeUnlock(pwd);
+            if (!authBiometricImageBase64 || authBiometricMatch !== true) {
+                if (errDiv) {
+                    errDiv.textContent = "Scan wajah yang cocok wajib berhasil sebelum password dapat membuka sesi.";
+                    errDiv.style.display = "block";
+                }
+                return;
+            }
+
+            const ok = await executeUnlock(pwd, authBiometricImageBase64, authBiometricMatch);
             if (ok) {
-                closeAuth();
-                if (pendingAuthCallback) {
-                    const cb = pendingAuthCallback;
+                // # FIX: penyesuaian payload & state
+                const callback = pendingAuthCallback;
+                closeAuth(false);
+                try {
+                    if (callback) await callback();
+                } finally {
                     pendingAuthCallback = null;
-                    cb();
                 }
             } else {
                 if (errDiv) {
@@ -2280,6 +2534,11 @@ function openAuthModal() {
 
     if (errDiv) errDiv.style.display = "none";
     if (pwdInput) pwdInput.value = "";
+    stopAuthBiometricCamera();
+    authBiometricImageBase64 = null;
+    authBiometricMatch = false;
+    const bioFeedback = document.getElementById("modal-bio-feedback");
+    if (bioFeedback) bioFeedback.textContent = "Wajah yang cocok wajib dipindai sebelum password dikirim.";
     modal.style.display = "flex";
     setTimeout(() => pwdInput?.focus(), 100);
 }

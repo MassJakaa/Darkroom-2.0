@@ -65,7 +65,38 @@ blockchain = PhotoBlockchain()
 # =============================================================================
 class SessionUnlockRequest(BaseModel):
     password: str
-    biometric_confirmed: bool = True
+    is_match: bool
+    image_base64: str
+
+
+# FIX: integrasi biometrik wajib
+def verify_biometric_image(image_base64: str) -> tuple[bool, float]:
+    """Verifikasi ulang citra wajah di backend; jangan mempercayai boolean klien saja."""
+    if not is_agent_registered():
+        raise HTTPException(status_code=403, detail="Belum ada wajah agen terdaftar; sesi privat ditolak.")
+    if not image_base64:
+        raise HTTPException(status_code=401, detail="Pemindaian wajah wajib sebelum membuka sesi privat.")
+
+    try:
+        import numpy as np
+        import cv2
+
+        img_bytes = base64.b64decode(image_base64.split(",", 1)[-1], validate=True)
+        frame = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
+        if frame is None:
+            raise HTTPException(status_code=400, detail="Format citra kamera tidak valid.")
+
+        detector, recognizer = load_models()
+        feature, _ = get_face_feature_from_frame(frame, detector, recognizer)
+        if feature is None:
+            return False, 0.0
+
+        registered_feature = np.load(FACE_DATA_PATH)
+        return compare_faces(feature, registered_feature)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Verifikasi biometrik gagal: {str(e)}")
 
 
 @app.get("/api/session/status")
@@ -91,7 +122,7 @@ def get_session_status(token: str = Depends(extract_token_from_headers)):
 def unlock_session(req: SessionUnlockRequest):
     """
     Otentikasi backend-enforced untuk membuka sesi rahasia (AUTHORIZED_PRIVATE).
-    Memeriksa validitas dongle fisik dan kata sandi sebelum menerbitkan token.
+    Memeriksa dongle, password, flag hasil scan, dan kecocokan wajah di backend sebelum menerbitkan token.
     """
     dongle_valid, msg, drive = verify_dongle()
     if not dongle_valid:
@@ -107,9 +138,16 @@ def unlock_session(req: SessionUnlockRequest):
             detail=f"Autentikasi gagal: {auth_msg}"
         )
 
+    # FIX: integrasi biometrik wajib
+    if req.is_match is not True:
+        raise HTTPException(status_code=401, detail="Verifikasi wajah wajib berhasil untuk membuka sesi privat.")
+    face_matches, bio_score = verify_biometric_image(req.image_base64)
+    if not face_matches:
+        raise HTTPException(status_code=401, detail="Wajah tidak cocok; sesi privat ditolak.")
+
     user_info = get_current_user_info()
     username = user_info["username"] if user_info else "Agent"
-    token = session_manager.authorize(username=username, drive=drive, bio_score=1.0)
+    token = session_manager.authorize(username=username, drive=drive, bio_score=bio_score)
 
     return {
         "success": True,
@@ -198,29 +236,20 @@ def register_face(req: BiometricRequest):
 @app.post("/api/auth/biometric/verify")
 @app.post("/api/auth/biometric")
 def verify_face(req: BiometricRequest):
-    if not is_agent_registered():
-        return {"is_match": True, "score": 1.0, "is_registered": False, "message": "Belum ada wajah terdaftar (Bypass Mode Testing)"}
     try:
-        img_bytes = base64.b64decode(req.image_base64.split(",")[-1])
-        import numpy as np
-        import cv2
-        frame = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
-        if frame is None:
-            raise HTTPException(status_code=400, detail="Format citra kamera tidak valid!")
-        detector, recognizer = load_models()
-        feature, _ = get_face_feature_from_frame(frame, detector, recognizer)
-        if feature is None:
-            return {"is_match": False, "score": 0.0, "message": "Wajah tidak terdeteksi di kamera"}
-        reg_feature = np.load(FACE_DATA_PATH)
-        is_match, score = compare_faces(feature, reg_feature)
+        # FIX: integrasi biometrik wajib
+        is_match, score = verify_biometric_image(req.image_base64)
         return {
             "is_match": is_match,
             "score": round(score, 3),
             "threshold": 0.363,
+            "is_registered": True,
             "message": f"Wajah Cocok ({round(score * 100, 1)}%)" if is_match else f"Wajah Ditolak (Kemiripan {round(score * 100, 1)}% < Ambang Batas 36.3%)"
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        return {"is_match": False, "score": 0.0, "message": str(e)}
+        raise HTTPException(status_code=400, detail=f"Verifikasi biometrik gagal: {str(e)}")
 
 
 @app.post("/api/auth/biometric/reset")
@@ -235,21 +264,32 @@ def reset_registered_face():
 
 class LoginRequest(BaseModel):
     password: str
+    is_match: bool
+    image_base64: str
 
 @app.post("/api/auth/login")
 def login_password(req: LoginRequest):
     is_valid, msg = verify_login(req.password)
+    if not is_valid:
+        raise HTTPException(status_code=401, detail=msg)
+
+    dongle_valid, dongle_msg, drive = verify_dongle()
+    if not dongle_valid:
+        raise HTTPException(status_code=403, detail=f"Otorisasi gagal: Hardware dongle tidak terpasang ({dongle_msg})")
+
+    # FIX: integrasi biometrik wajib
+    if req.is_match is not True:
+        raise HTTPException(status_code=401, detail="Verifikasi wajah wajib berhasil untuk login.")
+    face_matches, bio_score = verify_biometric_image(req.image_base64)
+    if not face_matches:
+        raise HTTPException(status_code=401, detail="Wajah tidak cocok; login ditolak.")
+
     user_info = get_current_user_info()
-    username = user_info["username"] if (is_valid and user_info) else "Agent"
-    
-    session_token = None
-    if is_valid:
-        dongle_valid, _, drive = verify_dongle()
-        if dongle_valid:
-            session_token = session_manager.authorize(username=username, drive=drive)
+    username = user_info["username"] if user_info else "Agent"
+    session_token = session_manager.authorize(username=username, drive=drive, bio_score=bio_score)
 
     return {
-        "success": is_valid,
+        "success": True,
         "message": msg,
         "username": username,
         "session_token": session_token,
@@ -643,7 +683,10 @@ def api_develop_export(req: DevelopExportRequest):
     clean_name = os.path.basename(req.filename)
     src_path = os.path.join(CATALOG_DIR, clean_name)
 
+    # FIX: penyesuaian payload & state
     base_title = os.path.splitext(clean_name)[0]
+    while base_title.upper().startswith("EXPORT_"):
+        base_title = base_title[len("EXPORT_"):]
     ext = req.export_format.lower()
     if ext == "jpeg":
         ext = "jpg"
@@ -681,6 +724,8 @@ def api_develop_export(req: DevelopExportRequest):
         return {
             "success": True,
             "filename": out_name,
+            # FIX: penyesuaian payload & state
+            "format": fmt,
             "download_url": f"/api/exports/download/{out_name}",
             "size_mb": round(os.path.getsize(out_path) / (1024 * 1024), 2),
             "dimensions": f"{img.width}x{img.height}"
@@ -797,19 +842,35 @@ def seal_active_photo_blockchain(
 
 @app.get("/api/blockchain/status")
 def get_blockchain_status():
+    # FIX: audit memakai validasi aktual terhadap rantai yang tersimpan.
     blockchain.load_chain()
     is_valid, msg = blockchain.verify_integrity()
-    return {"is_valid": is_valid, "message": msg, "chain": [b.to_dict() for b in blockchain.chain]}
+    return {
+        "success": True,
+        "is_valid": bool(is_valid),
+        "message": msg,
+        "blocks_checked": len(blockchain.chain),
+        "chain": [b.to_dict() for b in blockchain.chain]
+    }
 
 
 @app.post("/api/blockchain/simulate-tamper")
 def simulate_blockchain_tamper(session = Depends(require_private_session)):
+    # FIX: simulasi memverifikasi perubahan hash aktual lalu memulihkan ledger tersimpan.
+    blockchain.load_chain()
     if len(blockchain.chain) <= 1:
         raise HTTPException(status_code=400, detail="Mint foto ke blockchain terlebih dahulu!")
-    blockchain.chain[1].metadata = "PALSU! Bukti foto telah dimanipulasi oknum!"
-    is_valid, msg = blockchain.verify_integrity()
-    blockchain.load_chain()
-    return {"tamper_detected": not is_valid, "message": msg}
+    try:
+        blockchain.chain[1].metadata = "PALSU! Bukti foto telah dimanipulasi oknum!"
+        is_valid, msg = blockchain.verify_integrity()
+        return {
+            "success": True,
+            "tamper_detected": not is_valid,
+            "is_valid": bool(is_valid),
+            "message": msg
+        }
+    finally:
+        blockchain.load_chain()
 
 
 FRONTEND_DIR = os.path.join(PROJECT_ROOT, "frontend")
