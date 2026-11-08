@@ -2131,12 +2131,14 @@ async function loadBlockchain(visualOverride = null) {
             const blockIndex = Number.isInteger(Number(blk.index)) ? Number(blk.index) : position;
             const isTampered = tamperDetected && blockIndex === tamperIndex;
             const isOrphaned = tamperDetected && tamperIndex !== null && blockIndex > tamperIndex;
+            const cardState = isTampered ? "TAMPERED" : (isOrphaned ? "ORPHANED" : "");
             const card = document.createElement("div");
             card.className = `chain-block-card${isTampered ? " block-tampered tampered-card" : ""}${isOrphaned ? " block-orphaned" : ""}`;
             card.dataset.chainState = isTampered ? "tampered" : (isOrphaned ? "orphaned" : "valid");
             card.innerHTML = `
                 <div class="chain-block-title">
-                    <i class="fa-solid fa-cube"></i> Blok #${blk.index} ${blk.index === 0 ? '(Genesis)' : ''}
+                    <span><i class="fa-solid fa-cube"></i> Blok #${blk.index} ${blk.index === 0 ? '(Genesis)' : ''}</span>
+                    ${cardState ? `<span class="chain-state-marker">${cardState}</span>` : ""}
                 </div>
                 <div style="font-size:9.5px; color:#aaa; margin-bottom:2px;">${blk.timestamp}</div>
                 <div class="chain-hash-label">Prev Hash:</div>

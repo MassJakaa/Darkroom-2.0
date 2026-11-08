@@ -1352,7 +1352,30 @@ input[type="range"]::-webkit-slider-thumb {
     border-top: 3px solid var(--accent-red);
     background-color: rgba(255, 51, 102, 0.08);
 }
-.chain-block-title { font-weight: 700; color: #fff; margin-bottom: 2px; }
+.chain-block-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 2px;
+}
+.chain-state-marker {
+    flex-shrink: 0;
+    padding: 2px 5px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: 8px;
+    letter-spacing: 0.4px;
+    line-height: 1.1;
+}
+#view-preferences .chain-block-card.block-tampered .chain-state-marker {
+    color: #ff3333;
+}
+#view-preferences .chain-block-card.block-orphaned .chain-state-marker {
+    color: #ffcc00;
+}
 .chain-block-hash {
     background: #090a0c;
     border: 1px solid var(--border-color);
@@ -2823,6 +2846,7 @@ body {
     width: 100%;
     min-width: 0;
     min-height: 72px;
+    box-sizing: border-box;
     gap: 12px;
     margin: 0 0 12px;
     padding: 12px 14px;
@@ -2873,8 +2897,11 @@ body {
     display: block;
     max-width: 100%;
     margin-top: 0;
+    overflow: hidden;
     line-height: 1.35;
     overflow-wrap: anywhere;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .sidebar-mode-switcher { padding: 16px 0 8px; }
