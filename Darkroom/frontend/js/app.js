@@ -535,10 +535,15 @@ function renderLibraryGrid() {
 
         // Filter tipe
         if (filterType === "locked") return p.is_locked;
-        if (filterType === "unlocked") return !p.is_locked;
-        if (filterType === "stego") return p.filename.startsWith("STEGO_") || p.filename.startsWith("DECOY_");
+        if (filterType === "unlocked") return !p.is_locked && !isStegoAsset(p);
+        if (filterType === "stego") return !p.is_locked && isStegoAsset(p);
         return true;
     });
+
+    if (appState.activePhoto && !filtered.some(p => p.filename === appState.activePhoto.filename)) {
+        appState.activePhoto = null;
+        resetLibraryDetail();
+    }
 
     if (filtered.length === 0) {
         grid.innerHTML = `
@@ -560,13 +565,20 @@ function renderLibraryGrid() {
         let badgeHtml = `<span class="lib-card-badge badge-normal">NORMAL</span>`;
         if (photo.is_locked) {
             badgeHtml = `<span class="lib-card-badge badge-locked">LOCKED</span>`;
-        } else if (photo.filename.startsWith("STEGO_") || photo.filename.startsWith("DECOY_")) {
+        } else if (isStegoAsset(photo)) {
             badgeHtml = `<span class="lib-card-badge badge-stego">STEGO</span>`;
         }
 
+        const thumbHtml = photo.is_locked
+            ? `<div class="lib-card-locked-placeholder" aria-label="Locked placeholder">
+                   <i class="fa-solid fa-lock"></i>
+                   <span>LOCKED</span>
+               </div>`
+            : `<img src="${photo.url}" class="lib-card-thumb" alt="${photo.filename}">`;
+
         card.innerHTML = `
             <div class="lib-card-thumb-wrap">
-                <img src="${photo.url}" class="lib-card-thumb" alt="${photo.filename}">
+                ${thumbHtml}
                 ${badgeHtml}
             </div>
             <div class="lib-card-meta">
@@ -581,12 +593,42 @@ function renderLibraryGrid() {
 
         // Double click langsung buka di develop
         card.addEventListener("dblclick", () => {
+            if (photo.is_locked) return;
             selectPhoto(photo);
             switchWorkspace("view-develop");
         });
 
         grid.appendChild(card);
     });
+}
+
+function isStegoAsset(photoOrFilename) {
+    const filename = typeof photoOrFilename === "string"
+        ? photoOrFilename
+        : photoOrFilename?.filename;
+    return /^(MODIFIED_STEGO_|STEGO_|DECOY_)/i.test(String(filename || ""));
+}
+
+function resetLibraryDetail() {
+    const detailImg = document.getElementById("library-detail-img");
+    const detailEmpty = document.getElementById("library-detail-empty");
+    const detailInfo = document.getElementById("library-detail-info");
+    const detailActions = document.getElementById("library-detail-actions");
+    const btnOpenDevelop = document.getElementById("btn-lib-open-develop");
+    const btnUseTransfer = document.getElementById("btn-lib-use-transfer");
+
+    if (detailImg) {
+        detailImg.src = "";
+        detailImg.style.display = "none";
+    }
+    if (detailEmpty) {
+        detailEmpty.textContent = "Pilih foto dari grid untuk melihat detail";
+        detailEmpty.style.display = "block";
+    }
+    if (detailInfo) detailInfo.style.display = "none";
+    if (detailActions) detailActions.style.display = "none";
+    if (btnOpenDevelop) btnOpenDevelop.disabled = false;
+    if (btnUseTransfer) btnUseTransfer.disabled = false;
 }
 
 function selectLibraryPhoto(photo) {
@@ -601,10 +643,20 @@ function selectLibraryPhoto(photo) {
     const detailActions = document.getElementById("library-detail-actions");
 
     if (detailImg) {
-        detailImg.src = photo.url;
-        detailImg.style.display = "block";
+        if (photo.is_locked) {
+            detailImg.removeAttribute("src");
+            detailImg.style.display = "none";
+        } else {
+            detailImg.src = photo.url;
+            detailImg.style.display = "block";
+        }
     }
-    if (detailEmpty) detailEmpty.style.display = "none";
+    if (detailEmpty) {
+        detailEmpty.textContent = photo.is_locked
+            ? "Berkas terkunci. Buka kunci untuk melihat pratinjau."
+            : "";
+        detailEmpty.style.display = photo.is_locked ? "block" : "none";
+    }
     if (detailInfo) detailInfo.style.display = "flex";
     if (detailActions) detailActions.style.display = "flex";
 
@@ -614,6 +666,16 @@ function selectLibraryPhoto(photo) {
     document.getElementById("lib-meta-path").textContent = `storage/catalog/${photo.filename}`;
 
     const btnLibLock = document.getElementById("btn-lib-toggle-lock");
+    const btnOpenDevelop = document.getElementById("btn-lib-open-develop");
+    const btnUseTransfer = document.getElementById("btn-lib-use-transfer");
+    if (btnOpenDevelop) {
+        btnOpenDevelop.hidden = photo.is_locked;
+        btnOpenDevelop.disabled = photo.is_locked;
+    }
+    if (btnUseTransfer) {
+        btnUseTransfer.hidden = photo.is_locked;
+        btnUseTransfer.disabled = photo.is_locked;
+    }
     if (btnLibLock) {
         if (photo.is_locked) {
             btnLibLock.innerHTML = `<i class="fa-solid fa-lock-open"></i> Buka Kunci (.enc)`;

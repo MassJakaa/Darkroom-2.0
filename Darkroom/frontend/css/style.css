@@ -463,6 +463,23 @@ body.mode-darkroom .camouflage-badge {
     height: 100%;
     object-fit: cover;
 }
+.lib-card-locked-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: var(--accent-red);
+    background: linear-gradient(135deg, #1d1017, #0d0e12);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+.lib-card-locked-placeholder i {
+    font-size: 22px;
+}
 .lib-card-badge {
     position: absolute;
     top: 6px;
