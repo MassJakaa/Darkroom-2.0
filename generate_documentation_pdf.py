@@ -332,7 +332,7 @@ html_content = """<!DOCTYPE html>
         <h1 class="doc-title" style="border:none; margin:0 0 10px 0; padding:0;">DARKROOM 2.0</h1>
         <div class="doc-subtitle">
             <strong>Steganographic & Cryptographic Studio Suite for Covert Photojournalism</strong><br>
-            Aplikasi Studio Foto Kamuflase (*Plausible Deniability*) Terintegrasi Biometrik, Hardware Dongle SD Card, Super-Enkripsi, Stream Cipher ChaCha20, Field-Level SQLite, LSB Steganography, dan Proof-of-Work Blockchain
+            Aplikasi Studio Foto Kamuflase (*Plausible Deniability*) Terintegrasi Biometrik, Hardware Dongle SD Card, Super-Enkripsi, ChaCha20-Poly1305 AEAD, Field-Level SQLite, LSB Steganography, dan Proof-of-Work Blockchain
         </div>
         <div class="cover-divider"></div>
 
@@ -386,7 +386,7 @@ html_content = """<!DOCTYPE html>
     <div class="toc-item"><span class="toc-title">BAB III: LANDASAN TEORI & FORMULASI MATEMATIS KRIPTOGRAFI</span><span class="toc-page">Halaman 7</span></div>
     <div class="toc-item" style="padding-left: 20px;"><span class="toc-title">3.1 Kriptografi Klasik: Vigenère Cipher (Substitusi Polialfabetik)</span><span class="toc-page">Halaman 7</span></div>
     <div class="toc-item" style="padding-left: 20px;"><span class="toc-title">3.2 Kriptografi Modern: AES-256 Rijndael (Block Cipher SPN)</span><span class="toc-page">Halaman 8</span></div>
-    <div class="toc-item" style="padding-left: 20px;"><span class="toc-title">3.3 Kriptografi File: ChaCha20 Stream Cipher (Operasi ARX 256-bit)</span><span class="toc-page">Halaman 9</span></div>
+    <div class="toc-item" style="padding-left: 20px;"><span class="toc-title">3.3 Kriptografi File: ChaCha20-Poly1305 AEAD</span><span class="toc-page">Halaman 9</span></div>
     <div class="toc-item" style="padding-left: 20px;"><span class="toc-title">3.4 Fungsi Hash SHA-256 & Key Stretching PBKDF2</span><span class="toc-page">Halaman 10</span></div>
     <div class="toc-item" style="padding-left: 20px;"><span class="toc-title">3.5 Steganografi Citra Spasial LSB (Least Significant Bit)</span><span class="toc-page">Halaman 11</span></div>
     <div class="toc-item" style="padding-left: 20px;"><span class="toc-title">3.6 Buku Besar Terdistribusi: Blockchain Proof-of-Work</span><span class="toc-page">Halaman 12</span></div>
@@ -412,7 +412,7 @@ html_content = """<!DOCTYPE html>
         Proyek <strong>Darkroom 2.0</strong> adalah sistem perangkat lunak keamanan informasi multimedia yang dirancang untuk mengatasi kerentanan data pada aktivitas intelijen dan jurnalisme investigasi. Berbeda dengan aplikasi kriptografi akademik konvensional yang menyajikan tombol kriptografi secara telanjang, Darkroom menyamarkan seluruh fungsi pertahanan di balik antarmuka studio penyunting foto profesional bertema gelap (*dark-mode*) yang meniru Adobe Lightroom.
     </p>
     <p>
-        Aplikasi ini berhasil mengintegrasikan seluruh <strong>7 kriteria teknis wajib</strong> dari Slide 46 Materi 8 Kuliah Kriptografi: autentikasi biometrik wajah (YuNet + SFace), verifikasi perangkat fisik (*hardware dongle* berbasis SD Card via Windows Kernel32), otentikasi kata sandi berkekuatan tinggi (PBKDF2-HMAC-SHA256), *super-encryption* pesan teks (Vigenère + AES-256), enkripsi berkas biner mandiri (ChaCha20 Stream Cipher), proteksi basis data lokal (*Field-Level Encryption* pada SQLite), steganografi spasial (LSB Insertion berakselerasi NumPy), serta audit integritas bukti visual (*Proof-of-Work Blockchain Ledger*). Sistem dilengkapi mekanisme darurat *Dead Man's Switch* yang secara otomatis mengunci seluruh modul rahasia seketika saat media SD Card dilepas dari komputer.
+        Aplikasi ini berhasil mengintegrasikan seluruh <strong>7 kriteria teknis wajib</strong> dari Slide 46 Materi 8 Kuliah Kriptografi: autentikasi biometrik wajah (YuNet + SFace), verifikasi perangkat fisik (*hardware dongle* berbasis SD Card via Windows Kernel32), otentikasi kata sandi berkekuatan tinggi (PBKDF2-HMAC-SHA256), *super-encryption* pesan teks (Vigenère + AES-256-GCM AEAD), enkripsi berkas biner mandiri (ChaCha20-Poly1305 AEAD), proteksi basis data lokal (*Field-Level Encryption* pada SQLite), steganografi spasial (LSB Insertion berakselerasi NumPy), serta audit integritas bukti visual (*Proof-of-Work Blockchain Ledger*). Sistem dilengkapi mekanisme darurat *Dead Man's Switch* yang secara otomatis mengunci seluruh modul rahasia seketika saat media SD Card dilepas dari komputer.
     </p>
 </div>
 
@@ -481,18 +481,18 @@ html_content = """<!DOCTYPE html>
             <td><strong>3</strong></td>
             <td><strong>Super Enkripsi Pesan Teks</strong></td>
             <td>
-                Mengamankan catatan lapangan (*Photo Intel & GPS Field Notes*) secara berlapis ganda berantai (*chained*): Tahap 1 menggunakan algoritma klasik (Vigenère Cipher), dilanjutkan Tahap 2 menggunakan algoritma modern (AES-256 CBC Mode).
+                Mengamankan catatan lapangan (*Photo Intel & GPS Field Notes*) secara berlapis ganda berantai (*chained*): Tahap 1 menggunakan algoritma klasik (Vigenère Cipher), dilanjutkan Tahap 2 menggunakan algoritma modern (AES-256-GCM AEAD).
             </td>
-            <td><span class="badge badge-amber">Vigenère Cipher</span><br>+<br><span class="badge badge-green">AES-256-CBC</span></td>
+            <td><span class="badge badge-amber">Vigenère Cipher</span><br>+<br><span class="badge badge-green">AES-256-GCM AEAD</span></td>
             <td><code>backend/crypto/ super_encrypt.py</code></td>
         </tr>
         <tr>
             <td><strong>4</strong></td>
             <td><strong>Enkripsi File (Beda dari Teks)</strong></td>
             <td>
-                Mengamankan berkas foto mentah berukuran besar (*RAW negative / Master TIFF*) menggunakan algoritma yang sepenuhnya berbeda arsitekturnya dari enkripsi teks. Beroperasi secara streaming (chunk 64 KB) tanpa penambahan overhead padding.
+                Mengamankan berkas foto mentah menggunakan ChaCha20-Poly1305 AEAD, algoritma yang berbeda arsitekturnya dari enkripsi teks. Format ini menambahkan header metadata dan tag autentikasi Poly1305 untuk mendeteksi perubahan berkas.
             </td>
-            <td><span class="badge badge-green">ChaCha20</span><br>(256-bit Stream Cipher)</td>
+            <td><span class="badge badge-green">ChaCha20-Poly1305 AEAD</span><br>(256-bit key)</td>
             <td><code>backend/crypto/ file_cipher.py</code></td>
         </tr>
         <tr>
@@ -501,7 +501,7 @@ html_content = """<!DOCTYPE html>
             <td>
                 Penerapan <em>Field-Level Encryption (FLE)</em> pada basis data SQLite (`darkroom.db`). Kolom metadata umum (judul, nama file) disimpan plain untuk keperluan query, sedangkan kolom sensitif (`secret_intel_note`) dienkripsi dengan AES sebelum dieksekusi `INSERT`.
             </td>
-            <td><span class="badge badge-green">AES-256-CBC</span><br>(Field-Level FLE)</td>
+            <td><span class="badge badge-green">AES-256-GCM</span><br>(Field-Level FLE)</td>
             <td><code>backend/database/ db.py</code></td>
         </tr>
         <tr>
@@ -568,7 +568,7 @@ html_content = """<!DOCTYPE html>
     <strong>Keunggulan Desain:</strong>
 </p>
 <ul>
-    <li><strong>Zero Black-Box Cryptography:</strong> Seluruh modul inti (Vigenère, LSB, ChaCha20 streaming, Blockchain PoW) dirancang transparan dengan pustaka standar industri, memudahkan pembuktian matematis saat presentasi di hadapan dewan penguji.</li>
+    <li><strong>Zero Black-Box Cryptography:</strong> Seluruh modul inti (Vigenère, LSB, ChaCha20-Poly1305 AEAD, Blockchain PoW) dirancang transparan dengan pustaka standar industri, memudahkan pembuktian matematis saat presentasi di hadapan dewan penguji.</li>
     <li><strong>Client-Side High-Performance Canvas:</strong> Manipulasi filter pencahayaan (*Exposure, Contrast, Saturation*) diproses langsung pada kartu grafis peramban menggunakan elemen HTML5 Canvas dan WebGL, sehingga antarmuka berjalan 60 FPS tanpa membebani server lokal.</li>
     <li><strong>Cross-Platform Compatibility:</strong> Meskipun deteksi perangkat keras (*Dongle*) memanfaatkan Windows Kernel32 API, seluruh modul kriptografi dan steganografi ditulis dalam Python murni yang kompatibel lintas sistem operasi (Windows, Linux, macOS).</li>
 </ul>
@@ -593,11 +593,11 @@ html_content = """<!DOCTYPE html>
     </li>
     <li>
         <strong>Fase 4: Penyisipan Catatan Intelijen (Super-Enkripsi + LSB Stego)</strong><br>
-        Jurnalis memasukkan memo rahasia pada panel *Stego Teks*. Pesan dienkripsi berlapis: Vigenère Cipher &rarr; AES-256-CBC. Ciphertext Base64 kemudian disisipkan ke pixel foto penutup (*cover image*) melalui LSB 1-bit, dan salinan catatan terenkripsi otomatis disimpan ke basis data SQLite `darkroom.db`.
+        Jurnalis memasukkan memo rahasia pada panel *Stego Teks*. Pesan dienkripsi berlapis: Vigenère Cipher &rarr; AES-256-GCM AEAD. Ciphertext kemudian disisipkan ke pixel foto penutup (*cover image*) melalui LSB 1-bit, dan salinan catatan terenkripsi otomatis disimpan ke basis data SQLite `darkroom.db`.
     </li>
     <li>
         <strong>Fase 5: Penguncian Berkas Mentah di Harddisk (ChaCha20 File Lock)</strong><br>
-        File foto beresolusi penuh dikunci menjadi file `.enc` menggunakan ChaCha20 stream cipher. File asli dihapus dari harddisk sehingga jika laptop disita, berkas mentah tidak dapat dibuka oleh software pembaca foto biasa.
+        File foto beresolusi penuh dikunci menjadi file `.enc` menggunakan ChaCha20-Poly1305 AEAD. File asli dihapus dari harddisk sehingga jika laptop disita, berkas mentah tidak dapat dibuka oleh software pembaca foto biasa.
     </li>
     <li>
         <strong>Fase 6: Pencatatan ke Buku Besar Blockchain</strong><br>
@@ -645,41 +645,33 @@ html_content = """<!DOCTYPE html>
     <li><strong>AddRoundKey:</strong> Setiap byte pada matriks status dioperasikan secara bitwise XOR dengan sub-kunci putaran (*Round Key*) yang dihasilkan dari algoritma ekspansi kunci Rijndael.</li>
 </ol>
 <p>
-    <strong>Mode Operasi CBC & Padding PKCS#7:</strong> Sistem Darkroom mengimplementasikan AES-256 dalam mode <em>Cipher Block Chaining (CBC)</em> dengan <em>Initialization Vector (IV)</em> acak 16-byte yang dihasilkan oleh CSPN (*Cryptographically Secure Pseudo-Random Number Generator*). Sebelum dienkripsi, blok plaintext terakhir diselaraskan agar berkelipatan 16 byte menggunakan skema padding PKCS#7:
+    <strong>Mode Operasi GCM & Authenticated Encryption:</strong> Sistem Darkroom mengimplementasikan AES-256-GCM AEAD dengan nonce acak dan authentication tag. Selain menjaga kerahasiaan, tag memastikan ciphertext dan data terikat tidak berubah saat dekripsi:
 </p>
 <div class="formula-box">
-    C<sub>0</sub> = E<sub>K</sub>(P<sub>0</sub> &oplus; IV)<br>
-    C<sub>i</sub> = E<sub>K</sub>(P<sub>i</sub> &oplus; C<sub>i-1</sub>), untuk i &ge; 1
+    (ciphertext, tag) = AES-GCM<sub>K</sub>(nonce, plaintext, associated data)
 </div>
 
-<h2>3.3 Kriptografi File: ChaCha20 Stream Cipher (Operasi ARX 256-bit)</h2>
+<h2>3.3 Kriptografi File: ChaCha20-Poly1305 AEAD</h2>
 <p>
-    Sesuai instruksi tugas bahwa algoritma file <strong>harus berbeda</strong> dari algoritma pesan teks, Darkroom 2.0 memilih <strong>ChaCha20</strong> (RFC 8439) karya pakar kriptografi dunia Daniel J. Bernstein. ChaCha20 merupakan *Stream Cipher* simetris berbasis operasi <strong>ARX (Add-Rotate-XOR)</strong> yang beroperasi pada status matriks 4x4 berukuran 16 word 32-bit (total 512 bit):
+    Sesuai instruksi tugas bahwa algoritma file <strong>harus berbeda</strong> dari algoritma pesan teks, Darkroom 2.0 memilih <strong>ChaCha20-Poly1305 AEAD</strong> (RFC 8439). Kombinasi ini menyediakan enkripsi ChaCha20 dan autentikasi Poly1305 untuk ciphertext serta metadata terikat:
 </p>
 <div class="formula-box">
-    Matriks Status Awal ChaCha20:<br>
-    | "expa" (const) | "nd 3" (const) | "2-by" (const) | "te k" (const) |<br>
-    | Kunci 0-31 bit | Kunci 32-63 bit| Kunci 64-95 bit| Kunci 96-127bit|<br>
-    | Kunci 128-159b | Kunci 160-191b | Kunci 192-223b | Kunci 224-255b |<br>
-    | Counter (32b)  | Nonce (32b)    | Nonce (32b)    | Nonce (32b)    |
+    ciphertext_and_tag = ChaCha20Poly1305(key).encrypt(nonce, file_data, associated_data)
 </div>
 <p>
-    <strong>Operasi Inti Quarter-Round (QR):</strong>
+    <strong>Properti perlindungan file:</strong>
 </p>
 <div class="formula-box">
-    QR(a, b, c, d):<br>
-    a &larr; a + b;  d &larr; (d &oplus; a) <<< 16;<br>
-    c &larr; c + d;  b &larr; (b &oplus; c) <<< 12;<br>
-    a &larr; a + b;  d &larr; (d &oplus; a) <<< 8;<br>
-    c &larr; c + d;  b &larr; (b &oplus; c) <<< 7;
+    key = HKDF-SHA256(passphrase, salt, info, length=32)<br>
+    tag = Poly1305(ciphertext, associated_data)
 </div>
 <p>
     <strong>Mengapa ChaCha20 Dipilih untuk Berkas Foto RAW?</strong>
 </p>
 <ul>
-    <li><strong>Tanpa Padding Overhead:</strong> Karena merupakan Stream Cipher, ChaCha20 menghasilkan keystream biner berukuran persis sama dengan ukuran file sumber. Tidak ada byte tambahan (*padding*) yang terbuang.</li>
-    <li><strong>Throughput Ekstra Tinggi:</strong> ChaCha20 menggunakan operasi aritmatika integer dasar 32-bit yang sangat optimal di prosesor laptop x86-64 modern tanpa memerlukan instruksi perangkat keras khusus (seperti AES-NI).</li>
-    <li><strong>Streaming Chunk Memory:</strong> Darkroom membaca dan mengenkripsi berkas per blok 64 KB, sehingga berkas foto resolusi tinggi berukuran 50 MB - 100 MB dapat dikunci dalam hitungan milidetik tanpa menyebabkan konsumsi RAM laptop membengkak.</li>
+    <li><strong>Keragaman algoritma:</strong> ChaCha20-Poly1305 berbeda dari AES-256-GCM yang digunakan untuk teks.</li>
+    <li><strong>Authenticated Encryption:</strong> Metadata dan ciphertext dilindungi tag Poly1305, sehingga perubahan pada isi atau header berkas dapat terdeteksi saat dekripsi.</li>
+    <li><strong>Derivasi kunci:</strong> Kunci 256-bit diturunkan menggunakan HKDF-SHA256 dengan salt dan context yang sesuai.</li>
 </ul>
 
 <h2>3.4 Fungsi Hash SHA-256 & Key Stretching PBKDF2</h2>
@@ -830,12 +822,12 @@ def verify_login(password_input: str) -> tuple:
 
 <h2>4.4 Modul Super Enkripsi Teks (backend/crypto/super_encrypt.py)</h2>
 <p>
-    Menggabungkan kriptografi klasik (Vigenère) dan modern (AES-256 CBC) secara berantai:
+    Menggabungkan kriptografi klasik (Vigenère) dan modern (AES-256-GCM AEAD) secara berantai:
 </p>
 <pre><code>def super_encrypt(plaintext: str, vigenere_key: str, aes_key: str) -> dict:
     # Lapis 1: Enkripsi Klasik (Substitusi Polialfabetik Vigenère)
     stage1_result = vigenere_encrypt(plaintext, vigenere_key)
-    # Lapis 2: Enkripsi Modern (AES-256-CBC dengan PKCS#7 Padding)
+    # Lapis 2: Enkripsi Modern (AES-256-GCM dengan authentication tag)
     stage2_result = aes_encrypt(stage1_result, aes_key)
     return {
         "plaintext": plaintext,
@@ -844,7 +836,7 @@ def verify_login(password_input: str) -> tuple:
     }
 
 def super_decrypt(ciphertext: str, vigenere_key: str, aes_key: str) -> dict:
-    # Kupas Lapis 1: Dekripsi Modern (AES-256-CBC)
+    # Kupas Lapis 1: Dekripsi Modern (AES-256-GCM dengan validasi tag)
     stage1_result = aes_decrypt(ciphertext, aes_key)
     # Kupas Lapis 2: Dekripsi Klasik (Vigenère)
     stage2_result = vigenere_decrypt(stage1_result, vigenere_key)
@@ -852,20 +844,12 @@ def super_decrypt(ciphertext: str, vigenere_key: str, aes_key: str) -> dict:
 
 <h2>4.5 Modul Enkripsi Berkas ChaCha20 (backend/crypto/file_cipher.py)</h2>
 <p>
-    Enkripsi file biner menggunakan Stream Cipher ChaCha20 256-bit berbasis chunk 64 KB:
+    Enkripsi file biner menggunakan ChaCha20-Poly1305 AEAD dengan header metadata dan tag autentikasi:
 </p>
 <pre><code>def encrypt_file(input_filepath: str, output_filepath: str, passphrase: str) -> dict:
-    key = hashlib.sha256(passphrase.encode('utf-8')).digest() # 256-bit key
-    nonce = os.urandom(16) # 16-byte nonce acak
-    cipher = Cipher(algorithms.ChaCha20(key, nonce), mode=None)
-    encryptor = cipher.encryptor()
-    
-    with open(input_filepath, 'rb') as f_in, open(output_filepath, 'wb') as f_out:
-        f_out.write(b"DARKROOM_RAW") # 12-byte Magic Header
-        f_out.write(nonce)            # 16-byte Nonce
-        while chunk := f_in.read(64 * 1024): # Baca bertahap 64 KB
-            f_out.write(encryptor.update(chunk))
-    return {"status": "LOCKED", "algorithm": "ChaCha20"}</code></pre>
+    key = derive_key_hkdf(passphrase, salt=salt, info=HKDF_INFO_FILE, length=32)
+    ciphertext_and_tag = ChaCha20Poly1305(key).encrypt(nonce, file_data, aad)
+    return {"status": "LOCKED", "algorithm": "ChaCha20-Poly1305 AEAD"}</code></pre>
 
 <h2>4.6 Modul Steganografi LSB Hibrida (backend/stego/lsb.py)</h2>
 <p>
@@ -953,7 +937,7 @@ def delete_catalog_photo(filename: str = Form(...)):
 <div class="avoid-break" style="margin-bottom: 14px;">
     <h3>Q1: Mengapa enkripsi berkas foto menggunakan ChaCha20, sedangkan teks menggunakan AES-256?</h3>
     <p>
-        <strong>Jawaban Ilmiah:</strong> "Sesuai ketentuan tugas pada Slide 46 bahwa algoritma berkas harus berbeda dari teks, kami membedakan kategori arsitekturnya secara fundamental: Teks diproteksi dengan <em>Block Cipher (AES-256 CBC)</em> dengan padding PKCS#7 karena ukuran teks relatif pendek. Sebaliknya, berkas foto mentah (RAW / TIFF) berukuran puluhan Megabyte, sehingga kami menggunakan <em>Stream Cipher (ChaCha20 - RFC 8439)</em> berbasis operasi ARX 256-bit. ChaCha20 memiliki throughput pemrosesan biner yang jauh lebih tinggi dan zero-padding overhead, diproses secara streaming chunk 64 KB sehingga laptop tidak mengalami lonjakan konsumsi memori RAM."
+        <strong>Jawaban Ilmiah:</strong> "Sesuai ketentuan tugas bahwa algoritma berkas harus berbeda dari teks, teks menggunakan AES-256-GCM AEAD, sedangkan berkas menggunakan ChaCha20-Poly1305 AEAD. ChaCha20-Poly1305 memberikan enkripsi sekaligus autentikasi integritas melalui tag Poly1305, sehingga perubahan pada ciphertext atau metadata dapat ditolak saat dekripsi."
     </p>
 </div>
 
@@ -1007,9 +991,9 @@ def delete_catalog_photo(filename: str = Form(...)):
 </div>
 
 <div class="avoid-break" style="margin-bottom: 14px;">
-    <h3>Q9: Apa perbedaan mendasar antara Block Cipher (AES) dan Stream Cipher (ChaCha20)?</h3>
+    <h3>Q9: Apa perbedaan mendasar antara AES-GCM dan ChaCha20-Poly1305?</h3>
     <p>
-        <strong>Jawaban Ilmiah:</strong> "Block cipher membagi plaintext menjadi blok-blok berukuran tetap (128 bit pada AES) dan mengenkripsi setiap blok melalui serangkaian putaran substitusi-permutasi yang membutuhkan padding. Sedangkan Stream Cipher menghasilkan aliran bit pseudorandom (*keystream*) yang berukuran sama persis dengan plaintext dan dioperasikan secara bitwise XOR langsung bit demi bit atau byte demi byte tanpa memerlukan blok atau padding."
+        <strong>Jawaban Ilmiah:</strong> "AES-GCM dan ChaCha20-Poly1305 sama-sama merupakan AEAD: keduanya menjaga kerahasiaan sekaligus memverifikasi integritas melalui authentication tag. Perbedaannya terletak pada primitive enkripsi yang digunakan, yaitu AES berbasis blok dengan mode GCM dan ChaCha20 berbasis arus yang dipasangkan dengan Poly1305."
     </p>
 </div>
 
@@ -1074,7 +1058,7 @@ def delete_catalog_photo(filename: str = Form(...)):
         <strong>Harmonisasi Fungsional & Estetika Visual:</strong> Konsep kamuflase <em>Plausible Deniability</em> yang meniru antarmuka Adobe Lightroom berhasil menyamarkan fungsionalitas kriptografi tingkat tinggi di balik utilitas kerja fotografer yang legal dan wajar.
     </li>
     <li>
-        <strong>Ketahanan Algoritma & Kecepatan Eksekusi:</strong> Kombinasi algoritma klasik (Vigenère) dan modern (AES-256) memberikan perlindungan berlapis pada data intelijen. Pemilihan Stream Cipher ChaCha20 terbukti sangat tepat untuk menangani berkas multimedia berukuran besar, sedangkan implementasi LSB tervektorisasi NumPy menghasilkan kinerja steganografi instan (&lt; 0,02 detik).
+        <strong>Ketahanan Algoritma & Kecepatan Eksekusi:</strong> Kombinasi algoritma klasik (Vigenère) dan modern (AES-256-GCM AEAD) memberikan perlindungan berlapis pada data intelijen. Pemilihan ChaCha20-Poly1305 AEAD menjaga kerahasiaan dan integritas berkas multimedia, sedangkan implementasi LSB tervektorisasi NumPy menghasilkan kinerja steganografi instan (&lt; 0,02 detik).
     </li>
     <li>
         <strong>Integritas Bukti Tak Terbantahkan:</strong> Pemanfaatan rantai blok dengan konsensus Proof-of-Work SHA-256 menjamin orisinalitas foto bukti jurnalistik terhadap segala bentuk manipulasi pixel maupun pemalsuan waktu (*anti-tamper digital chain of custody*).

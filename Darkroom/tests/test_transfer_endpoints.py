@@ -11,6 +11,7 @@ import os
 import sys
 import unittest
 import io
+from unittest.mock import patch
 from PIL import Image
 from fastapi.testclient import TestClient
 
@@ -18,6 +19,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+import app as app_module
 from app import app, CATALOG_DIR, EXPORTS_DIR
 from backend.core.session import session_manager
 from backend.hardware.dongle import set_virtual_dongle
@@ -29,7 +31,15 @@ class TestTransferAndDevelopEndpoints(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         set_virtual_dongle(True)
-        login_res = client.post("/api/session/unlock", json={"password": "admin"})
+        cls.biometric_patcher = patch.object(
+            app_module, "verify_biometric_image", return_value=(True, 1.0)
+        )
+        cls.biometric_patcher.start()
+        login_res = client.post("/api/session/unlock", json={
+            "password": "admin",
+            "is_match": True,
+            "image_base64": "test-image"
+        })
         cls.token = login_res.json()["token"]
         cls.auth_headers = {"Authorization": f"Bearer {cls.token}"}
 
@@ -43,6 +53,7 @@ class TestTransferAndDevelopEndpoints(unittest.TestCase):
     def tearDownClass(cls):
         if os.path.exists(cls.test_cover_path):
             os.remove(cls.test_cover_path)
+        cls.biometric_patcher.stop()
         set_virtual_dongle(False)
         session_manager.reset_to_workspace()
 

@@ -16,6 +16,7 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from PIL import Image
 
@@ -23,6 +24,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, ".."))
 sys.path.insert(0, PROJECT_ROOT)
 
+import app as app_module
 from app import app
 from backend.core.session import session_manager, SessionState
 from backend.hardware.dongle import set_virtual_dongle, verify_dongle
@@ -40,6 +42,10 @@ class TestDarkroomFullSystem(unittest.TestCase):
         self.client = TestClient(app)
         set_virtual_dongle(True)
         session_manager.reset_to_workspace()
+        self.biometric_patcher = patch.object(
+            app_module, "verify_biometric_image", return_value=(True, 1.0)
+        )
+        self.biometric_patcher.start()
 
         self.test_dir = tempfile.mkdtemp()
 
@@ -50,6 +56,7 @@ class TestDarkroomFullSystem(unittest.TestCase):
         img.save(self.cover_path, format="PNG")
 
     def tearDown(self):
+        self.biometric_patcher.stop()
         set_virtual_dongle(True)
         session_manager.reset_to_workspace()
         if os.path.exists(self.cover_path):
@@ -125,7 +132,11 @@ class TestDarkroomFullSystem(unittest.TestCase):
         self.assertEqual(session_manager.current_state, SessionState.PHOTOGRAPHY_WORKSPACE)
 
         # 2. Unlock dengan kata sandi admin yang sah
-        res = self.client.post("/api/session/unlock", json={"password": "admin", "biometric_confirmed": True})
+        res = self.client.post("/api/session/unlock", json={
+            "password": "admin",
+            "is_match": True,
+            "image_base64": "test-image"
+        })
         self.assertEqual(res.status_code, 200)
         token = res.json()["token"]
         self.assertEqual(session_manager.current_state, SessionState.AUTHORIZED_PRIVATE)
@@ -168,7 +179,11 @@ class TestDarkroomFullSystem(unittest.TestCase):
 
     def test_lock_and_unlock_image_file(self):
         """5. Vault File Lock: Mengunci foto menjadi .enc via ChaCha20-Poly1305 dan memulihkannya."""
-        login_res = self.client.post("/api/session/unlock", json={"password": "admin", "biometric_confirmed": True})
+        login_res = self.client.post("/api/session/unlock", json={
+            "password": "admin",
+            "is_match": True,
+            "image_base64": "test-image"
+        })
         token = login_res.json()["token"]
         headers = {"Authorization": f"Bearer {token}"}
 

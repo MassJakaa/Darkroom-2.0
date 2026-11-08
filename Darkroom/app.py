@@ -65,8 +65,8 @@ blockchain = PhotoBlockchain()
 # =============================================================================
 class SessionUnlockRequest(BaseModel):
     password: str
-    is_match: bool
-    image_base64: str
+    is_match: bool = False
+    image_base64: str = ""
 
 
 # FIX: integrasi biometrik wajib

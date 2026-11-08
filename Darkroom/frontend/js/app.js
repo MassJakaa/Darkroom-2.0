@@ -76,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Muat data awal
     loadCatalog();
     checkSessionStatus();
-    setInterval(checkSessionStatus, 3000); // Polling hardware dongle & session state
+    setInterval(checkSessionStatus, 2000); // Polling hardware dongle & session state
 });
 
 // ==============================================================================

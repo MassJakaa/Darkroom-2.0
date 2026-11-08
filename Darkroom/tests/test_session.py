@@ -10,12 +10,14 @@ dan Dead Man's Switch (Emergency Revocation).
 import os
 import sys
 import unittest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+import app as app_module
 from app import app
 from backend.core.session import session_manager, SessionState
 from backend.hardware.dongle import set_virtual_dongle, verify_dongle
@@ -27,8 +29,13 @@ class TestSessionFoundation(unittest.TestCase):
     def setUp(self):
         session_manager.reset_to_workspace()
         set_virtual_dongle(False)
+        self.biometric_patcher = patch.object(
+            app_module, "verify_biometric_image", return_value=(True, 1.0)
+        )
+        self.biometric_patcher.start()
 
     def tearDown(self):
+        self.biometric_patcher.stop()
         session_manager.reset_to_workspace()
         set_virtual_dongle(False)
 
@@ -70,7 +77,9 @@ class TestSessionFoundation(unittest.TestCase):
         """4. Membuka sesi privat harus gagal jika dongle fisik/virtual tidak ada."""
         set_virtual_dongle(False)
         res = client.post("/api/session/unlock", json={
-            "password": "admin"
+            "password": "admin",
+            "is_match": True,
+            "image_base64": "test-image"
         })
         self.assertEqual(res.status_code, 403)
         self.assertIn("dongle tidak terpasang", res.json()["detail"].lower())
@@ -79,7 +88,9 @@ class TestSessionFoundation(unittest.TestCase):
         """5. Membuka sesi sukses saat dongle terpasang dan kata sandi valid."""
         set_virtual_dongle(True) # Pasang dongle
         res = client.post("/api/session/unlock", json={
-            "password": "admin"
+            "password": "admin",
+            "is_match": True,
+            "image_base64": "test-image"
         })
         self.assertEqual(res.status_code, 200)
         data = res.json()
@@ -97,7 +108,11 @@ class TestSessionFoundation(unittest.TestCase):
     def test_dead_mans_switch_revokes_session_when_dongle_removed(self):
         """6. DEAD MAN'S SWITCH: Saat dongle dicabut, sesi privat seketika dibatalkan."""
         set_virtual_dongle(True)
-        login_res = client.post("/api/session/unlock", json={"password": "admin"})
+        login_res = client.post("/api/session/unlock", json={
+            "password": "admin",
+            "is_match": True,
+            "image_base64": "test-image"
+        })
         token = login_res.json()["token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -124,7 +139,11 @@ class TestSessionFoundation(unittest.TestCase):
     def test_manual_panic_lock(self):
         """7. Panic Switch manual seketika memusnahkan sesi."""
         set_virtual_dongle(True)
-        login_res = client.post("/api/session/unlock", json={"password": "admin"})
+        login_res = client.post("/api/session/unlock", json={
+            "password": "admin",
+            "is_match": True,
+            "image_base64": "test-image"
+        })
         token = login_res.json()["token"]
 
         res_lock = client.post("/api/session/lock")
