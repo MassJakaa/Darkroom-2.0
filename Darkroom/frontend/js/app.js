@@ -1898,14 +1898,13 @@ function initPreferencesWorkspace() {
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.detail || "Gagal simulasi serangan!");
 
-                    const statusAlert = document.getElementById("bc-status-alert");
-                    const statusText = document.getElementById("bc-status-text");
                     if (data.tamper_detected === true && data.is_valid === false) {
-                        if (statusAlert) statusAlert.className = "blockchain-status-alert tampered";
-                        if (statusText) statusText.textContent = `Manipulasi terdeteksi oleh verifikasi hash: ${data.message}`;
-
-                        const cards = document.querySelectorAll(".chain-block-card");
-                        if (cards.length > 1) cards[1].classList.add("tampered-card");
+                        const tamperIndex = inferBlockchainInvalidIndex(data.message, []) ?? 1;
+                        await loadBlockchain({
+                            tamperDetected: true,
+                            tamperIndex,
+                            message: `Manipulasi terdeteksi oleh verifikasi hash: ${data.message}`
+                        });
                         alert(`Simulasi tamper terdeteksi oleh backend.\n\n${data.message}`);
                     } else {
                         await loadBlockchain();
@@ -2077,7 +2076,24 @@ function initBiometricControls() {
     }
 }
 
-async function loadBlockchain() {
+function inferBlockchainInvalidIndex(message, chain = []) {
+    const auditMessage = String(message || "");
+    const brokenLink = auditMessage.match(/antara\s+Blok\s*#?(\d+)\s+dan\s+(?:Blok\s*)?#?(\d+)/i);
+    if (brokenLink) return Number(brokenLink[2]);
+
+    const namedBlock = auditMessage.match(/Blok\s*#?(\d+)/i);
+    if (namedBlock) return Number(namedBlock[1]);
+
+    for (let i = 1; i < chain.length; i++) {
+        if (chain[i].previous_hash !== chain[i - 1].current_hash) {
+            const blockIndex = Number(chain[i].index);
+            return Number.isInteger(blockIndex) ? blockIndex : i;
+        }
+    }
+    return null;
+}
+
+async function loadBlockchain(visualOverride = null) {
     const grid = document.getElementById("chain-cards-grid");
     const statusAlert = document.getElementById("bc-status-alert");
     const statusText = document.getElementById("bc-status-text");
@@ -2091,24 +2107,42 @@ async function loadBlockchain() {
             throw new Error("Respons audit blockchain tidak lengkap.");
         }
 
+        const forcedIndex = Number(visualOverride?.tamperIndex);
+        const tamperDetected = data.is_valid === false || visualOverride?.tamperDetected === true;
+        let tamperIndex = visualOverride?.tamperDetected === true && Number.isInteger(forcedIndex)
+            ? forcedIndex
+            : (tamperDetected ? inferBlockchainInvalidIndex(data.message, data.chain) : null);
+
+        if (tamperDetected && tamperIndex === null && data.chain.length > 1) {
+            const firstNonGenesisIndex = Number(data.chain[1].index);
+            tamperIndex = Number.isInteger(firstNonGenesisIndex) ? firstNonGenesisIndex : 1;
+        }
+
+        const blockchainSection = grid.closest(".pref-blockchain-section");
+        if (blockchainSection) blockchainSection.classList.toggle("hacker-mode", tamperDetected);
+
         if (statusAlert && statusText) {
-            statusAlert.className = data.is_valid ? "blockchain-status-alert" : "blockchain-status-alert tampered";
-            statusText.textContent = data.message;
+            statusAlert.className = tamperDetected ? "blockchain-status-alert tampered" : "blockchain-status-alert";
+            statusText.textContent = visualOverride?.message || data.message;
         }
 
         grid.innerHTML = "";
-        data.chain.forEach(blk => {
+        data.chain.forEach((blk, position) => {
+            const blockIndex = Number.isInteger(Number(blk.index)) ? Number(blk.index) : position;
+            const isTampered = tamperDetected && blockIndex === tamperIndex;
+            const isOrphaned = tamperDetected && tamperIndex !== null && blockIndex > tamperIndex;
             const card = document.createElement("div");
-            card.className = "chain-block-card";
+            card.className = `chain-block-card${isTampered ? " block-tampered tampered-card" : ""}${isOrphaned ? " block-orphaned" : ""}`;
+            card.dataset.chainState = isTampered ? "tampered" : (isOrphaned ? "orphaned" : "valid");
             card.innerHTML = `
                 <div class="chain-block-title">
                     <i class="fa-solid fa-cube"></i> Blok #${blk.index} ${blk.index === 0 ? '(Genesis)' : ''}
                 </div>
                 <div style="font-size:9.5px; color:#aaa; margin-bottom:2px;">${blk.timestamp}</div>
-                <div style="font-size:9px; color:#888;">Prev Hash:</div>
-                <div class="chain-block-hash">${blk.previous_hash.slice(0, 16)}...</div>
-                <div style="font-size:9px; color:#888;">Current Hash:</div>
-                <div class="chain-block-hash" style="color:#00f59b;">${blk.current_hash.slice(0, 16)}...</div>
+                <div class="chain-hash-label">Prev Hash:</div>
+                <div class="chain-block-hash hash-prev">${blk.previous_hash.slice(0, 16)}...</div>
+                <div class="chain-hash-label">Current Hash:</div>
+                <div class="chain-block-hash hash-current">${blk.current_hash.slice(0, 16)}...</div>
                 <div style="font-size:9.5px; color:#777; margin-top:2px;">
                     Nonce: <strong style="color:#fff;">${blk.nonce}</strong><br>
                     Meta: <span style="color:#aaa;">${blk.metadata}</span>
@@ -2119,8 +2153,10 @@ async function loadBlockchain() {
         return data;
     } catch (err) {
         console.error("Gagal memuat status blockchain:", err);
+        const blockchainSection = grid.closest(".pref-blockchain-section");
+        if (blockchainSection) blockchainSection.classList.toggle("hacker-mode", visualOverride?.tamperDetected === true);
         if (statusAlert) statusAlert.className = "blockchain-status-alert tampered";
-        if (statusText) statusText.textContent = `Audit gagal: ${err.message}`;
+        if (statusText) statusText.textContent = visualOverride?.message || `Audit gagal: ${err.message}`;
         grid.innerHTML = "";
         return { is_valid: false, message: err.message, chain: [] };
     }
