@@ -582,11 +582,11 @@
 <ol>
     <li>
         <strong>Fase 1: Deteksi Kunci Fisik (SD Card Dongle)</strong><br>
-        Aplikasi dijalankan dalam kondisi normal. Background poller di JavaScript mengecek rute `/api/dongle/status` setiap 2 detik. Jika kartu memori kamera dengan file `darkroom.key` yang berisi hash SHA-256 sah terpasang di Card Reader, indikator status di pojok kiri bawah berubah menjadi hijau (*SD Reader Connected*).
+        Aplikasi dijalankan dalam kondisi normal. Background poller di JavaScript mengecek rute `/api/dongle/status` setiap 2 detik. Jika kartu memori kamera dengan file `darkroom.key` yang berisi hash SHA-256 sah terpasang di Card Reader, indikator status di pojok kiri bawah berubah menjadi hijau (*SD Reader Connected*). Pada mode normal, dongle virtual tidak dapat diaktifkan melalui API; fasilitas itu hanya tersedia jika `DARKROOM_ALLOW_VIRTUAL_DONGLE=true` dinyalakan secara eksplisit untuk development/testing.
     </li>
     <li>
         <strong>Fase 2: Otentikasi Ganda (Biometrik Wajah + Kriptografis)</strong><br>
-        Pengguna menekan tombol otentikasi. Kamera webcam menyala, memindai wajah pengguna melalui OpenCV YuNet, mengekstrak 128-D feature vector melalui SFace, dan membandingkannya dengan embedding resmi via Cosine Similarity (threshold &ge; 0.363). Setelah wajah cocok, pengguna memasukkan kata sandi yang divalidasi menggunakan PBKDF2-HMAC-SHA256.
+        Pengguna menekan tombol otentikasi. Kamera webcam menyala, memindai wajah pengguna melalui OpenCV YuNet, mengekstrak 128-D feature vector melalui SFace, dan membandingkannya dengan embedding resmi via Cosine Similarity (threshold &ge; 0.363). Setelah wajah cocok, pengguna memasukkan kata sandi yang divalidasi menggunakan PBKDF2-HMAC-SHA256. Login ditolak jika kamera belum menghasilkan citra Base64 atau hasil pencocokan bukan `true`.
     </li>
     <li>
         <strong>Fase 3: Masuk ke Ruang Studio Editor</strong><br>

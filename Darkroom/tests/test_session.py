@@ -60,6 +60,21 @@ class TestSessionFoundation(unittest.TestCase):
         res_dongle = client.get("/api/dongle/status")
         self.assertEqual(res_dongle.status_code, 200)
 
+    def test_virtual_dongle_endpoint_is_disabled_by_default(self):
+        """Virtual dongle tidak boleh diaktifkan pada mode aplikasi normal."""
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("DARKROOM_ALLOW_VIRTUAL_DONGLE", None)
+            res = client.post("/api/dongle/virtual", params={"active": "true"})
+        self.assertEqual(res.status_code, 403)
+
+    def test_virtual_dongle_endpoint_requires_explicit_test_flag(self):
+        """Virtual dongle hanya boleh aktif saat flag testing dinyalakan eksplisit."""
+        with patch.dict(os.environ, {"DARKROOM_ALLOW_VIRTUAL_DONGLE": "true"}):
+            res = client.post("/api/dongle/virtual", params={"active": "true"})
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.json()["virtual_dongle"])
+        set_virtual_dongle(False)
+
     def test_private_endpoints_rejected_without_session_token(self):
         """3. Endpoint privat harus menolak request tanpa token dengan HTTP 401."""
         res = client.post("/api/stego/embed-super-text", data={
@@ -205,7 +220,30 @@ class TestSessionFoundation(unittest.TestCase):
             self.assertTrue(res_ok.json()["success"])
             self.assertIn("session_token", res_ok.json())
 
+    def test_login_rejects_empty_biometric_image(self):
+        """Login harus menolak payload kamera kosong sebelum verifikasi wajah."""
+        set_virtual_dongle(True)
+        with patch.object(app_module, "verify_biometric_image", return_value=(True, 0.95)):
+            res = client.post("/api/auth/login", json={
+                "password": "admin",
+                "is_match": True,
+                "image_base64": ""
+            })
+        self.assertEqual(res.status_code, 401)
+        self.assertIn("gambar biometrik", res.json()["detail"].lower())
+
+    def test_login_rejects_non_boolean_match_value(self):
+        """Login harus menolak nilai match yang bukan literal boolean True."""
+        set_virtual_dongle(True)
+        with patch.object(app_module, "verify_biometric_image", return_value=(True, 0.95)):
+            res = client.post("/api/auth/login", json={
+                "password": "admin",
+                "is_match": 1,
+                "image_base64": "real-face"
+            })
+        self.assertEqual(res.status_code, 401)
+        self.assertIn("verifikasi wajah wajib", res.json()["detail"].lower())
+
 
 if __name__ == "__main__":
     unittest.main()
-

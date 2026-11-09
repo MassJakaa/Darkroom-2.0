@@ -15,7 +15,7 @@ import base64
 import shutil
 import hashlib
 import io
-from typing import Optional, List
+from typing import Any, Optional, List
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -41,6 +41,15 @@ from backend.database.db import init_db, get_connection
 from backend.blockchain.ledger import PhotoBlockchain
 
 app = FastAPI(title="Darkroom 2.0 Studio")
+
+
+def virtual_dongle_allowed() -> bool:
+    """Allow the virtual dongle only when explicitly enabled for testing."""
+    return os.getenv("DARKROOM_ALLOW_VIRTUAL_DONGLE", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
 
 app.add_middleware(
     CORSMiddleware,
@@ -184,6 +193,11 @@ def get_dongle_status():
 
 @app.post("/api/dongle/virtual")
 def toggle_virtual_dongle(active: bool = True):
+    if not virtual_dongle_allowed():
+        raise HTTPException(
+            status_code=403,
+            detail="Virtual dongle hanya tersedia dalam mode development/testing.",
+        )
     from backend.hardware.dongle import set_virtual_dongle, verify_dongle
     set_virtual_dongle(active)
     is_valid, msg, drive = verify_dongle()
@@ -264,7 +278,7 @@ def reset_registered_face():
 
 class LoginRequest(BaseModel):
     password: str
-    is_match: bool
+    is_match: Any
     image_base64: str
 
 @app.post("/api/auth/login")
@@ -276,6 +290,9 @@ def login_password(req: LoginRequest):
     dongle_valid, dongle_msg, drive = verify_dongle()
     if not dongle_valid:
         raise HTTPException(status_code=403, detail=f"Otorisasi gagal: Hardware dongle tidak terpasang ({dongle_msg})")
+
+    if not isinstance(req.image_base64, str) or not req.image_base64.strip():
+        raise HTTPException(status_code=401, detail="Gambar biometrik wajib berasal dari kamera.")
 
     # FIX: integrasi biometrik wajib
     if req.is_match is not True:
