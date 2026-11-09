@@ -812,13 +812,26 @@
                                 </div>
                                 <div class="virtual-dongle-toggle-box">
                                     <label class="switch-container">
-                                        <input type="checkbox" id="toggle-virtual-dongle" checked>
+                                        <input type="checkbox" id="toggle-virtual-dongle">
                                         <span class="switch-slider"></span>
                                     </label>
                                     <div class="switch-text">
                                         <strong>Virtual Dongle Cadangan (Cryptographic Virtual SD)</strong>
-                                        <span>Gunakan storage/virtual_dongle/darkroom.key bila slot SD card fisik tidak tersedia.</span>
+                                        <span>Fallback software darurat. Secara default dinonaktifkan agar mewajibkan hardware fisik.</span>
                                     </div>
+                                </div>
+
+                                <div class="dongle-creator-box" style="margin-top: 12px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 6px; border: 1px dashed var(--border-color);">
+                                    <label style="font-size: 11px; font-weight: 600; display: block; margin-bottom: 6px; color: var(--text-primary);">
+                                        <i class="fa-solid fa-wand-magic-sparkles"></i> Tulis Kunci ke Hardware Dongle (SD Card / Flashdisk):
+                                    </label>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <input type="text" id="input-dongle-drive-letter" placeholder="misal: E" style="width: 80px; text-transform: uppercase; text-align: center; font-weight: 700; padding: 6px; border-radius: 4px; border: 1px solid var(--border-color); background: #090a0c; color: #fff;">
+                                        <button class="btn btn-outline btn-sm" id="btn-create-hardware-key">
+                                            <i class="fa-solid fa-key"></i> Tulis darkroom.key
+                                        </button>
+                                    </div>
+                                    <div id="feedback-dongle-creator" style="font-size: 11px; margin-top: 6px; display: none;"></div>
                                 </div>
                             </div>
                         </div>

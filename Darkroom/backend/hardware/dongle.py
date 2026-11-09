@@ -39,40 +39,53 @@ STORAGE_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "storage"))
 VIRTUAL_DONGLE_DIR = os.path.join(STORAGE_DIR, "virtual_dongle")
 VIRTUAL_DONGLE_FILE = os.path.join(VIRTUAL_DONGLE_DIR, DONGLE_KEY_FILENAME)
 
+# Flag kontrol virtual dongle (Default: False agar wajib menggunakan hardware dongle fisik)
+_virtual_dongle_enabled = False
+
 
 def get_removable_drives():
     """
-    Mendeteksi semua drive eksternal / removable yang sedang terhubung ke laptop.
-    Mengembalikan daftar drive letter, contoh: ['E:\\', 'F:\\']
+    Mendeteksi semua drive fisik eksternal (SD Card / Flashdisk) yang sedang terhubung ke laptop.
+    Memeriksa tipe DRIVE_REMOVABLE dari Windows Kernel32 API serta drive non-sistem yang memiliki file darkroom.key.
+    Mengembalikan daftar drive letter unik, contoh: ['E:\\', 'F:\\']
     """
     removable_drives = []
-    
-    # Cek ketersediaan Windows Kernel32 API
+    system_drive = os.environ.get("SystemDrive", "C:").upper()
+    if not system_drive.endswith("\\"):
+        system_drive += "\\"
+        
     try:
         bitmask = ctypes.windll.kernel32.GetLogicalDrives()
         for letter in string.ascii_uppercase:
             if (bitmask >> (ord(letter) - ord('A'))) & 1:
                 drive_path = f"{letter}:\\"
+                # Abaikan drive OS utama C:\
+                if drive_path.upper() == system_drive:
+                    continue
                 drive_type = ctypes.windll.kernel32.GetDriveTypeW(drive_path)
+                # Removable drive fisik (Flashdisk / SD Card)
                 if drive_type == DRIVE_REMOVABLE:
+                    removable_drives.append(drive_path)
+                # Atau drive non-sistem lain yang memiliki berkas kunci darkroom.key
+                elif os.path.exists(os.path.join(drive_path, DONGLE_KEY_FILENAME)):
                     removable_drives.append(drive_path)
     except Exception:
         pass
                 
-    return removable_drives
+    return list(dict.fromkeys(removable_drives))
 
 
 def verify_dongle():
     """
-    Memeriksa apakah ada Dongle (SD Card / Flashdisk) sah yang tercolok.
-    Mendukung deteksi drive fisik Windows dan virtual dongle penyimpanan lokal.
+    Memeriksa apakah ada Dongle Fisik (SD Card / Flashdisk) sah yang tercolok.
+    Secara default menolak fallback virtual kecuali secara eksplisit diaktifkan.
     
     Return:
         tuple (is_valid: bool, message: str, drive_path: str)
     """
     drives = get_removable_drives()
     
-    # 1. Prioritaskan drive removable fisik (Hardware SD Card / USB)
+    # 1. Prioritaskan drive removable fisik (Hardware SD Card / Flashdisk USB)
     if drives:
         for drive in drives:
             key_file_path = os.path.join(drive, DONGLE_KEY_FILENAME)
@@ -88,8 +101,9 @@ def verify_dongle():
                 except Exception as e:
                     return False, f"Gagal membaca file kunci di {drive}: {str(e)}", drive
 
-    # 2. Periksa Virtual Dongle di storage (Kunci Cadangan Kriptografis)
-    if os.path.exists(VIRTUAL_DONGLE_FILE):
+    # 2. Virtual Dongle HANYA diizinkan jika secara eksplisit diaktifkan (misal pada automated testing)
+    global _virtual_dongle_enabled
+    if _virtual_dongle_enabled and os.path.exists(VIRTUAL_DONGLE_FILE):
         try:
             with open(VIRTUAL_DONGLE_FILE, "r", encoding="utf-8") as f:
                 content = f.read().strip()
@@ -101,13 +115,15 @@ def verify_dongle():
 
     if drives:
         return False, f"Media eksternal terdeteksi ({', '.join(drives)}), tetapi file '{DONGLE_KEY_FILENAME}' tidak ditemukan.", None
-    return False, "Tidak ada media eksternal (SD Card / Flashdisk) yang terdeteksi.", None
+    return False, "Tidak ada hardware dongle (SD Card / Flashdisk) yang terdeteksi.", None
 
 
 def set_virtual_dongle(active: bool = True):
     """
-    Mengaktifkan atau mencabut virtual dongle (berguna untuk pengujian Dead Man's Switch).
+    Mengaktifkan atau mencabut virtual dongle (berguna untuk pengujian otomatis unit test).
     """
+    global _virtual_dongle_enabled
+    _virtual_dongle_enabled = active
     os.makedirs(VIRTUAL_DONGLE_DIR, exist_ok=True)
     if active:
         with open(VIRTUAL_DONGLE_FILE, "w", encoding="utf-8") as f:

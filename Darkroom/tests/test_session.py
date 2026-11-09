@@ -41,7 +41,7 @@ class TestSessionFoundation(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        set_virtual_dongle(True)
+        set_virtual_dongle(False)
 
     def test_initial_state_is_photography_workspace(self):
         """1. Status awal sistem harus selalu PHOTOGRAPHY_WORKSPACE."""

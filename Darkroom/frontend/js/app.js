@@ -1974,7 +1974,7 @@ async function executeDevelopExport() {
 // 8. WORKSPACE 5: PREFERENCES (DONGLE, BLOCKCHAIN AUDIT)
 // ==============================================================================
 function initPreferencesWorkspace() {
-    // Virtual Dongle Toggle
+    // Virtual Dongle Toggle (Opt-in darurat)
     const virtualToggle = document.getElementById("toggle-virtual-dongle");
     if (virtualToggle) {
         virtualToggle.addEventListener("change", async (e) => {
@@ -1982,10 +1982,56 @@ function initPreferencesWorkspace() {
             try {
                 const res = await fetch(`/api/dongle/virtual?active=${active}`, { method: "POST" });
                 const data = await res.json();
-                alert(`Virtual Dongle: ${data.virtual_dongle ? "DIAKTIFKAN" : "DINONAKTIFKAN"}`);
+                alert(`Virtual Dongle Cadangan: ${data.virtual_dongle ? "DIAKTIFKAN" : "DINONAKTIFKAN"}`);
                 await checkSessionStatus();
             } catch (err) {
                 console.error("Gagal toggle virtual dongle:", err);
+            }
+        });
+    }
+
+    // Tulis darkroom.key ke media fisik eksternal (Flashdisk / SD Card)
+    const btnCreateKey = document.getElementById("btn-create-hardware-key");
+    const inputDrive = document.getElementById("input-dongle-drive-letter");
+    const feedbackKey = document.getElementById("feedback-dongle-creator");
+
+    if (btnCreateKey && inputDrive) {
+        btnCreateKey.addEventListener("click", async () => {
+            const driveLetter = inputDrive.value.trim().toUpperCase().replace(":", "");
+            if (!driveLetter) {
+                alert("Masukkan huruf drive eksternal (contoh: E)!");
+                return;
+            }
+            try {
+                btnCreateKey.disabled = true;
+                btnCreateKey.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menulis...';
+                const formData = new FormData();
+                formData.append("drive_letter", driveLetter);
+
+                const res = await fetch("/api/dongle/make-key", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Gagal membuat kunci dongle!");
+
+                if (feedbackKey) {
+                    feedbackKey.textContent = `✅ ${data.message}`;
+                    feedbackKey.style.color = "var(--accent-green)";
+                    feedbackKey.style.display = "block";
+                }
+                alert(`Kunci Kriptografis Berhasil Dibuat!\n\nFile 'darkroom.key' telah ditulis ke ${driveLetter}:\\.\nMedia ini sekarang berfungsi sebagai Hardware Dongle resmi Darkroom.`);
+                await checkSessionStatus();
+            } catch (err) {
+                if (feedbackKey) {
+                    feedbackKey.textContent = `❌ ${err.message}`;
+                    feedbackKey.style.color = "var(--accent-red)";
+                    feedbackKey.style.display = "block";
+                }
+                alert("Gagal menulis kunci: " + err.message);
+            } finally {
+                btnCreateKey.disabled = false;
+                btnCreateKey.innerHTML = '<i class="fa-solid fa-key"></i> Tulis darkroom.key';
             }
         });
     }
