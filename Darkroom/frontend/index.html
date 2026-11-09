@@ -26,7 +26,7 @@
                 </div>
             </div>
 
-            <!-- TOMBOL UBAH MODE (LIGHTROOM <-> DARKROOM) UNTUK PENGUJIAN & DEMO TANPA LOGIN -->
+            <!-- TOMBOL UBAH MODE (LIGHTROOM <-> DARKROOM) DILINDUNGI OTENTIKASI BIOMETRIK & LOGIN -->
             <div class="sidebar-mode-switcher">
                 <button class="btn-mode-switcher" id="btn-toggle-app-mode" title="Klik untuk beralih antara Mode Lightroom (Kamuflase) dan Mode Darkroom (Kriptografi)">
                     <div class="mode-switcher-left">
@@ -816,7 +816,7 @@
                                         <span class="switch-slider"></span>
                                     </label>
                                     <div class="switch-text">
-                                        <strong>Virtual Dongle (Mode Laboratorium / Testing)</strong>
+                                        <strong>Virtual Dongle Cadangan (Cryptographic Virtual SD)</strong>
                                         <span>Gunakan storage/virtual_dongle/darkroom.key bila slot SD card fisik tidak tersedia.</span>
                                     </div>
                                 </div>
@@ -928,10 +928,25 @@
             </div>
             <div class="modal-body">
                 <p style="font-size: 11.5px; color: #9aa1ad; margin-bottom: 12px; line-height: 1.4;">
-                    Operasi kriptografi Transfer memerlukan izin sesi privat (AUTHORIZED_PRIVATE). Masukkan kata sandi otorisasi untuk melanjutkan.
+                    Operasi kriptografi Darkroom memerlukan otorisasi sesi privat (AUTHORIZED_PRIVATE). Verifikasi wajah biometrik (OpenCV AI) dan masukkan kata sandi master agen untuk melanjutkan.
                 </p>
+                <div class="form-item" id="modal-biometric-section" style="margin-bottom: 12px;">
+                    <label><i class="fa-solid fa-face-smile"></i> Verifikasi Biometrik Wajah:</label>
+                    <video id="modal-bio-video" autoplay playsinline muted
+                        style="display:none; width:100%; max-height:180px; margin:6px 0; border-radius:6px; background:#090a0c; object-fit:cover; border:1px solid var(--border-color);"></video>
+                    <canvas id="modal-bio-canvas" style="display:none;"></canvas>
+                    <div class="btn-group" style="display:flex; gap:6px; margin-top:6px;">
+                        <button type="button" class="btn btn-outline btn-sm" id="btn-modal-bio-camera">
+                            <i class="fa-solid fa-camera"></i> <span id="btn-modal-cam-text">Buka Kamera</span>
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm" id="btn-modal-bio-verify" disabled>
+                            <i class="fa-solid fa-id-badge"></i> Scan & Verifikasi Wajah
+                        </button>
+                    </div>
+                    <div id="modal-bio-feedback" style="font-size:11px; margin-top:6px; color:var(--text-muted);">Pindai wajah agen yang cocok sebelum memasukkan password.</div>
+                </div>
                 <div class="form-item">
-                    <label>Kata Sandi Admin / Agen:</label>
+                    <label><i class="fa-solid fa-key"></i> Kata Sandi Master Agen:</label>
                     <input type="password" id="modal-auth-password" placeholder="Masukkan kata sandi...">
                 </div>
                 <div id="modal-auth-error" style="color: var(--accent-red); font-size: 11px; margin-top: 6px; display: none;"></div>

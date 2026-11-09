@@ -86,7 +86,21 @@ function initModeSwitcher() {
     const btnToggleMode = document.getElementById("btn-toggle-app-mode");
     if (btnToggleMode) {
         btnToggleMode.addEventListener("click", () => {
-            toggleAppMode();
+            if (appState.appMode === "lightroom") {
+                // Mau masuk ke Mode Darkroom: WAJIB otentikasi biometrik + password + dongle
+                if (appState.sessionState === "AUTHORIZED_PRIVATE" && appState.sessionToken) {
+                    toggleAppMode("darkroom");
+                } else {
+                    ensurePrivateSession(() => {
+                        toggleAppMode("darkroom");
+                    });
+                }
+            } else {
+                // Mau keluar dari Mode Darkroom: Kunci sesi & reset ke mode publik
+                executeLock().then(() => {
+                    toggleAppMode("lightroom");
+                });
+            }
         });
     }
 
@@ -166,7 +180,11 @@ function switchWorkspace(targetViewId) {
     // Keamanan Mode: Cegah membuka ruang kerja rahasia jika berada dalam Mode Lightroom
     if (appState.appMode === "lightroom" && (targetViewId === "view-transfer" || targetViewId === "view-decrypt" || targetViewId === "view-preferences")) {
         console.warn(`Akses ke '${targetViewId}' diblokir: Ruang kerja kriptografi hanya dapat diakses dalam Mode Darkroom.`);
-        targetViewId = "view-develop";
+        ensurePrivateSession(() => {
+            toggleAppMode("darkroom");
+            switchWorkspace(targetViewId);
+        });
+        return;
     }
 
     const navBtns = document.querySelectorAll(".sidebar-tab-btn");
@@ -230,7 +248,10 @@ function initSessionManager() {
                 if (biometric.is_match !== true) {
                     throw new Error(biometric.message || "Wajah tidak cocok.");
                 }
-                await executeUnlock(pwd, imageBase64, biometric.is_match);
+                const ok = await executeUnlock(pwd, imageBase64, biometric.is_match);
+                if (ok) {
+                    await toggleAppMode("darkroom");
+                }
             } catch (err) {
                 alert("Autentikasi biometrik gagal: " + err.message);
             } finally {
@@ -391,6 +412,9 @@ async function executeLock() {
         appState.sessionToken = null;
         appState.sessionState = "PHOTOGRAPHY_WORKSPACE";
         await checkSessionStatus();
+        if (appState.appMode === "darkroom") {
+            await toggleAppMode("lightroom");
+        }
         alert("🔒 Sesi privat ditutup. Aplikasi kembali ke Mode Fotografi.");
     } catch (err) {
         console.error("Gagal mengunci sesi:", err);
@@ -1921,7 +1945,7 @@ function initPreferencesWorkspace() {
             try {
                 const res = await fetch(`/api/dongle/virtual?active=${active}`, { method: "POST" });
                 const data = await res.json();
-                alert(`Virtual Dongle: ${data.virtual_dongle ? "DIAKTIFKAN (Testing Mode)" : "DINONAKTIFKAN"}`);
+                alert(`Virtual Dongle: ${data.virtual_dongle ? "DIAKTIFKAN" : "DINONAKTIFKAN"}`);
                 await checkSessionStatus();
             } catch (err) {
                 console.error("Gagal toggle virtual dongle:", err);
@@ -2638,7 +2662,12 @@ function openAuthModal() {
     authBiometricImageBase64 = null;
     authBiometricMatch = false;
     const bioFeedback = document.getElementById("modal-bio-feedback");
-    if (bioFeedback) bioFeedback.textContent = "Wajah yang cocok wajib dipindai sebelum password dikirim.";
+    if (bioFeedback) {
+        bioFeedback.textContent = "Pindai wajah agen yang cocok sebelum memasukkan password.";
+        bioFeedback.style.color = "var(--text-muted)";
+    }
+    const verifyBtn = document.getElementById("btn-modal-bio-verify");
+    if (verifyBtn) verifyBtn.disabled = true;
     modal.style.display = "flex";
     setTimeout(() => pwdInput?.focus(), 100);
 }

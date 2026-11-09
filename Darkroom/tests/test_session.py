@@ -39,6 +39,10 @@ class TestSessionFoundation(unittest.TestCase):
         session_manager.reset_to_workspace()
         set_virtual_dongle(False)
 
+    @classmethod
+    def tearDownClass(cls):
+        set_virtual_dongle(True)
+
     def test_initial_state_is_photography_workspace(self):
         """1. Status awal sistem harus selalu PHOTOGRAPHY_WORKSPACE."""
         res = client.get("/api/session/status")
@@ -155,5 +159,53 @@ class TestSessionFoundation(unittest.TestCase):
         self.assertFalse(status_res.json()["is_authorized"])
 
 
+    def test_unlock_session_fails_when_biometrics_mismatch(self):
+        """8. ENFORCEMENT BIOMETRIK: Unlock sesi DITOLAK saat wajah tidak cocok."""
+        set_virtual_dongle(True)
+        with patch.object(app_module, "verify_biometric_image", return_value=(False, 0.12)):
+            res = client.post("/api/session/unlock", json={
+                "password": "admin",
+                "is_match": True,
+                "image_base64": "invalid-face"
+            })
+            self.assertEqual(res.status_code, 401)
+            self.assertIn("wajah tidak cocok", res.json()["detail"].lower())
+
+    def test_unlock_session_fails_when_is_match_is_false(self):
+        """9. ENFORCEMENT BIOMETRIK: Unlock sesi DITOLAK jika flag match tidak disetujui."""
+        set_virtual_dongle(True)
+        res = client.post("/api/session/unlock", json={
+            "password": "admin",
+            "is_match": False,
+            "image_base64": "test-image"
+        })
+        self.assertEqual(res.status_code, 401)
+        self.assertIn("verifikasi wajah wajib", res.json()["detail"].lower())
+
+    def test_login_endpoint_enforces_biometric_and_dongle(self):
+        """10. LOGIN OTENTIKASI: /api/auth/login menolak jika biometrik tidak cocok."""
+        set_virtual_dongle(True)
+        with patch.object(app_module, "verify_biometric_image", return_value=(False, 0.0)):
+            res = client.post("/api/auth/login", json={
+                "password": "admin",
+                "is_match": True,
+                "image_base64": "impostor-face"
+            })
+            self.assertEqual(res.status_code, 401)
+            self.assertIn("wajah tidak cocok", res.json()["detail"].lower())
+
+        # Berhasil jika wajah cocok
+        with patch.object(app_module, "verify_biometric_image", return_value=(True, 0.95)):
+            res_ok = client.post("/api/auth/login", json={
+                "password": "admin",
+                "is_match": True,
+                "image_base64": "real-face"
+            })
+            self.assertEqual(res_ok.status_code, 200)
+            self.assertTrue(res_ok.json()["success"])
+            self.assertIn("session_token", res_ok.json())
+
+
 if __name__ == "__main__":
     unittest.main()
+

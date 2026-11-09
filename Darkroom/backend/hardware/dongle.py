@@ -65,7 +65,7 @@ def get_removable_drives():
 def verify_dongle():
     """
     Memeriksa apakah ada Dongle (SD Card / Flashdisk) sah yang tercolok.
-    Mendukung deteksi drive fisik Windows dan virtual dongle untuk testing lab.
+    Mendukung deteksi drive fisik Windows dan virtual dongle penyimpanan lokal.
     
     Return:
         tuple (is_valid: bool, message: str, drive_path: str)
@@ -88,14 +88,14 @@ def verify_dongle():
                 except Exception as e:
                     return False, f"Gagal membaca file kunci di {drive}: {str(e)}", drive
 
-    # 2. Periksa Virtual Dongle di storage (Testing / Lab mode)
+    # 2. Periksa Virtual Dongle di storage (Kunci Cadangan Kriptografis)
     if os.path.exists(VIRTUAL_DONGLE_FILE):
         try:
             with open(VIRTUAL_DONGLE_FILE, "r", encoding="utf-8") as f:
                 content = f.read().strip()
             content_hash = hashlib.sha256(content.encode('utf-8')).hexdigest()
             if content_hash == EXPECTED_TOKEN_HASH:
-                return True, "Virtual Dongle Terdeteksi (Lab/Testing Mode)", VIRTUAL_DONGLE_DIR
+                return True, "Virtual Dongle Terdeteksi (Kunci Kriptografis Sah)", VIRTUAL_DONGLE_DIR
         except Exception:
             pass
 

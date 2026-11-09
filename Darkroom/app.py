@@ -4,7 +4,7 @@ DARKROOM 2.0 - LIGHTROOM-INSPIRED COVERT STUDIO SERVER (FASTAPI)
 =============================================================================
 - Bilah Icon Kanan: Edit Sliders, Stego Teks (Super Crypto), Stego Decoy, File Lock
 - Menu Samping Kiri: Studio Editor, Brankas Terkunci (.enc), Blockchain, Dekriptor
-- Mode Testing: Login di-bypass otomatis agar pengujian cepat & lancar
+- Security Foundation: Otentikasi Berjenjang (Dongle SD + Password PBKDF2 + Biometrik AI SFace)
 =============================================================================
 """
 
