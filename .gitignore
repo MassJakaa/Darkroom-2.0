@@ -104,3 +104,5 @@ dist/
 Darkroom/storage/logs/
 Darkroom/storage/cache/
 Darkroom/storage/tmp/
+docs/superpowers/
+darkroom-blackbox-library.png
