@@ -3,5 +3,9 @@ title Darkroom Launcher
 echo ===================================================
 echo    MEMULAI DARKROOM SUITE
 echo ===================================================
-python run.py
+if exist Darkroom\run.py (
+    python run.py
+) else (
+    python app.py
+)
 pause
