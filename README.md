@@ -142,19 +142,35 @@ Seluruh modul kriptografi, state machine, steganografi LSB, dan endpoint API tel
 python -m unittest discover -s Darkroom/tests -v
 ```
 
-Hasil uji: **30/30 Unit Tests PASS (100% Berhasil)** dalam < 1 detik.
+Hasil uji: **33/33 Unit Tests PASS (100% Berhasil)** dalam ~1 detik.
 
 ---
 
-## 🛠️ Struktur Proyek
+## 📖 Dokumentasi Lengkap & Laporan Akademik
+
+Laporan teknis komprehensif format ilmiah telah disediakan di direktori [`docs/`](docs/):
+- **Laporan PDF Resmi**: [`docs/Dokumentasi_Lengkap_Darkroom_Kriptografi.pdf`](docs/Dokumentasi_Lengkap_Darkroom_Kriptografi.pdf)
+- **Tampilan Interaktif HTML**: [`docs/Dokumentasi_Lengkap_Darkroom_Kriptografi.html`](docs/Dokumentasi_Lengkap_Darkroom_Kriptografi.html)
+- **PDF Generator Script**: [`docs/generate_documentation_pdf.py`](docs/generate_documentation_pdf.py)
+
+---
+
+## 🛠️ Struktur Direktori
 
 ```
 .
-├── run.py                        # Peluncur utama aplikasi mandiri
+├── run.py                        # Peluncur utama aplikasi mandiri (root forwarder)
 ├── run_darkroom.bat              # Script double-click Windows
 ├── requirements.txt              # Daftar dependensi Python
-├── README.md                     # Panduan komprehensif ini
-└── Darkroom/
+├── README.md                     # Panduan ringkas proyek GitHub
+├── docs/                         # Laporan teknis & dokumentasi akademik lengkap
+│   ├── Dokumentasi_Lengkap_Darkroom_Kriptografi.pdf
+│   ├── Dokumentasi_Lengkap_Darkroom_Kriptografi.html
+│   └── generate_documentation_pdf.py
+├── Materi/                       # Slide materi kuliah Kriptografi (Materi 1 - 9)
+├── Tugas1/                       # Berkas Tugas 1 Kriptografi
+├── Tugas2/                       # Berkas Tugas 2 Kriptografi
+└── Darkroom/                     # Sumber kode utama aplikasi Darkroom 2.0
     ├── app.py                    # Server backend FastAPI
     ├── backend/
     │   ├── blockchain/ledger.py  # Proof-of-Work Blockchain
@@ -167,7 +183,7 @@ Hasil uji: **30/30 Unit Tests PASS (100% Berhasil)** dalam < 1 detik.
     │   │   └── models/           # Bobot neural network ONNX (offline)
     │   └── stego/lsb.py          # LSB Framing V2 Engine bertenaga NumPy
     ├── frontend/                 # UI Lightroom Suite (HTML, CSS, JS murni)
-    └── tests/                    # 30 Unit Tests komprehensif
+    └── tests/                    # 33 Unit Tests komprehensif
 ```
 
 ---

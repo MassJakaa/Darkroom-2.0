@@ -8,8 +8,9 @@ import os
 import subprocess
 import sys
 
-HTML_OUTPUT_PATH = os.path.abspath(r"Dokumentasi_Lengkap_Darkroom_Kriptografi.html")
-PDF_OUTPUT_PATH = os.path.abspath(r"Dokumentasi_Lengkap_Darkroom_Kriptografi.pdf")
+DOCS_DIR = os.path.dirname(os.path.abspath(__file__))
+HTML_OUTPUT_PATH = os.path.join(DOCS_DIR, "Dokumentasi_Lengkap_Darkroom_Kriptografi.html")
+PDF_OUTPUT_PATH = os.path.join(DOCS_DIR, "Dokumentasi_Lengkap_Darkroom_Kriptografi.pdf")
 
 html_content = """<!DOCTYPE html>
 <html lang="id">
