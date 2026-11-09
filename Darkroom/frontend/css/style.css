@@ -86,6 +86,20 @@ body {
 /* MODE SWITCHER BUTTON (LIGHTROOM <-> DARKROOM) */
 .sidebar-mode-switcher {
     padding: 10px 0 4px 0;
+    transition: opacity 0.3s ease;
+}
+.sidebar-mode-switcher.dongle-revealed {
+    animation: dongleRevealAnim 0.35s ease-out forwards;
+}
+@keyframes dongleRevealAnim {
+    0% {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 .btn-mode-switcher {
     width: 100%;

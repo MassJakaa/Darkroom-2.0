@@ -43,6 +43,8 @@ const appState = {
     transferCapacity: null,   // Data kalkulasi kapasitas cover
     outgoingPayloadType: "TEXT", // TEXT | FILE | IMAGE
     
+    lastDongleValid: null,
+
     // Export State
     exportFormat: "JPEG",
     exportScale: 100,
@@ -180,10 +182,15 @@ function switchWorkspace(targetViewId) {
     // Keamanan Mode: Cegah membuka ruang kerja rahasia jika berada dalam Mode Lightroom
     if (appState.appMode === "lightroom" && (targetViewId === "view-transfer" || targetViewId === "view-decrypt" || targetViewId === "view-preferences")) {
         console.warn(`Akses ke '${targetViewId}' diblokir: Ruang kerja kriptografi hanya dapat diakses dalam Mode Darkroom.`);
-        ensurePrivateSession(() => {
-            toggleAppMode("darkroom");
-            switchWorkspace(targetViewId);
-        });
+        if (appState.lastDongleValid) {
+            ensurePrivateSession(() => {
+                toggleAppMode("darkroom");
+                switchWorkspace(targetViewId);
+            });
+        } else {
+            alert("Akses Ditolak: Hardware dongle (SD Card / Flashdisk) wajib dicolok untuk mengakses fitur rahasia.");
+            targetViewId = "view-develop";
+        }
         return;
     }
 
@@ -305,6 +312,36 @@ async function checkSessionStatus() {
             if (prefDongleDrive) prefDongleDrive.textContent = "Tidak Terdeteksi";
             if (prefDongleMsg) prefDongleMsg.textContent = data.dongle_message || "Menunggu SD Card";
         }
+
+        // VISIBILITAS TOMBOL GANTI MODE (LIGHTROOM <-> DARKROOM):
+        // Sesuai konsep awal covert ops: Tombol menuju Darkroom HANYA MUNCUL bila dongle terpasang/dicolok!
+        const modeSwitcherContainer = document.getElementById("sidebar-mode-switcher-container");
+        if (modeSwitcherContainer) {
+            if (data.dongle_valid || appState.appMode === "darkroom") {
+                modeSwitcherContainer.style.display = "block";
+                modeSwitcherContainer.classList.add("dongle-revealed");
+            } else {
+                modeSwitcherContainer.style.display = "none";
+                modeSwitcherContainer.classList.remove("dongle-revealed");
+            }
+        }
+
+        // DETEKSI PERUBAHAN STATUS DONGLE (COLOK / CABUT & DEAD MAN'S SWITCH)
+        if (appState.lastDongleValid !== null && appState.lastDongleValid !== undefined) {
+            if (!appState.lastDongleValid && data.dongle_valid) {
+                console.log("Hardware Dongle dicolok: Tombol Darkroom dimunculkan.");
+            } else if (appState.lastDongleValid && !data.dongle_valid) {
+                console.warn("Hardware Dongle dicabut: Menjalankan Dead Man's Switch.");
+                if (appState.appMode === "darkroom") {
+                    appState.sessionToken = null;
+                    appState.sessionState = "SESSION_LOCKED";
+                    await toggleAppMode("lightroom");
+                    switchWorkspace("view-develop");
+                    alert("🚨 HARDWARE DONGLE DICABUT!\nDead Man's Switch aktif: Sesi privat dibatalkan seketika dan aplikasi kembali ke penyamaran Lightroom.");
+                }
+            }
+        }
+        appState.lastDongleValid = data.dongle_valid;
 
         // Update badge sesi di sidebar
         const sessionDot = document.getElementById("session-dot");
