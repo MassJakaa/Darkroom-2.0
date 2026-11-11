@@ -15,6 +15,7 @@ import base64
 import shutil
 import hashlib
 import io
+import mimetypes
 from typing import Any, Optional, List
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends
 from fastapi.staticfiles import StaticFiles
@@ -491,7 +492,13 @@ async def api_embed_decoy_image(
     out_path = os.path.join(EXPORTS_DIR, out_filename)
 
     try:
-        res = embed_secret_image_in_decoy(cover_path, secret_path, out_path)
+        secret_filename = canvas_filename if direction == "canvas_as_secret" else uploaded_file.filename
+        res = embed_secret_image_in_decoy(
+            cover_path,
+            secret_path,
+            out_path,
+            original_filename=secret_filename
+        )
         if os.path.exists(temp_uploaded):
             os.remove(temp_uploaded)
         return {
@@ -617,7 +624,13 @@ async def api_transfer_outgoing_image(
     out_path = os.path.join(EXPORTS_DIR, out_name)
 
     try:
-        res = embed_secret_image_in_decoy(cover_path, temp_sec_path, out_path, passphrase=passphrase)
+        res = embed_secret_image_in_decoy(
+            cover_path,
+            temp_sec_path,
+            out_path,
+            passphrase=passphrase,
+            original_filename=clean_img_name
+        )
         # Salin ke katalog agar foto yang sudah dimodifikasi langsung muncul di Library & Filmstrip
         shutil.copy2(out_path, os.path.join(CATALOG_DIR, out_name))
         return {
@@ -677,7 +690,10 @@ async def api_transfer_incoming_extract(
             export_dir=EXPORTS_DIR
         )
         if res.get("saved_file"):
-            res["download_url"] = f"/api/exports/download/{os.path.basename(res['saved_file'])}"
+            output_name = os.path.basename(res["saved_file"])
+            res["download_url"] = f"/api/exports/download/{output_name}"
+            if res.get("type") == "IMAGE":
+                res["preview_url"] = f"/api/exports/preview/{output_name}"
         return res
     finally:
         if temp_created and os.path.exists(temp_path):
@@ -770,7 +786,9 @@ async def api_reveal_file(
         os.remove(temp_path)
         
     if res.get("type") == "IMAGE":
-        res["download_url"] = f"/api/exports/download/{res['filename']}"
+        output_name = res["filename"]
+        res["download_url"] = f"/api/exports/download/{output_name}"
+        res["preview_url"] = f"/api/exports/preview/{output_name}"
         
     return res
 
@@ -782,6 +800,24 @@ def download_export_file(filename: str):
     if not os.path.exists(p):
         raise HTTPException(status_code=404, detail="File tidak ditemukan!")
     return FileResponse(p, filename=clean_name)
+
+
+@app.get("/api/exports/preview/{filename}")
+def preview_export_image(filename: str):
+    clean_name = os.path.basename(filename)
+    p = os.path.join(EXPORTS_DIR, clean_name)
+    if not os.path.exists(p):
+        raise HTTPException(status_code=404, detail="File preview tidak ditemukan!")
+
+    media_type, _ = mimetypes.guess_type(clean_name)
+    if not media_type or not media_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Berkas preview bukan citra yang didukung!")
+
+    return FileResponse(
+        p,
+        media_type=media_type,
+        headers={"Content-Disposition": f'inline; filename="{clean_name}"'}
+    )
 
 
 # =============================================================================

@@ -1571,12 +1571,15 @@ async function executeIncomingTransfer() {
                 document.getElementById("inc-recovered-size").textContent = `${data.bytes_recovered || 0} Bytes | Tag Poly1305 VALID`;
             }
         } else if (data.type === "IMAGE") {
+            if (!data.is_decrypted) {
+                throw new Error(data.error || "Citra rahasia gagal didekripsi.");
+            }
             const imgBox = document.getElementById("trans-result-inc-img");
             const dlBtn = document.getElementById("btn-download-recovered-img");
             const preview = document.getElementById("inc-recovered-img-preview");
             if (imgBox && dlBtn && preview) {
                 imgBox.style.display = "flex";
-                preview.src = data.download_url;
+                preview.src = data.preview_url || data.download_url;
                 dlBtn.href = data.download_url;
                 dlBtn.download = data.saved_file ? data.saved_file.split("/").pop() : "recovered_image.png";
                 document.getElementById("inc-recovered-imgname").textContent = "Citra Rahasia Dipulihkan";
@@ -1723,7 +1726,7 @@ async function executeDecryptWorkspace() {
     }
 
     const vigKey = vigKeyInput ? vigKeyInput.value.trim() : "JURNALIS";
-    const passphrase = passInput ? passInput.value.trim() : "OperasiSenyap2026!";
+    const passphrase = passInput ? passInput.value.trim() : "FotoDecoy2026!";
 
     const placeholder = document.getElementById("decrypt-placeholder");
     const textBox = document.getElementById("decrypt-text-box");
@@ -1748,7 +1751,7 @@ async function executeDecryptWorkspace() {
             formData.append("filename", catalogFilename);
         }
         formData.append("vigenere_key", vigKey || "JURNALIS");
-        formData.append("passphrase", passphrase || "OperasiSenyap2026!");
+        formData.append("passphrase", passphrase || "FotoDecoy2026!");
 
         const headers = {};
         if (appState.sessionToken) {
@@ -1795,6 +1798,9 @@ async function executeDecryptWorkspace() {
                 }
             }
         } else if (data.type === "IMAGE") {
+            if (!data.is_decrypted) {
+                throw new Error(data.error || "Citra rahasia gagal didekripsi.");
+            }
             if (imgBox) {
                 imgBox.style.display = "block";
                 const imgEl = document.getElementById("decrypt-recovered-img");
@@ -1802,7 +1808,7 @@ async function executeDecryptWorkspace() {
                 const dimsEl = document.getElementById("decrypt-recovered-imgdims");
                 const dlBtn = document.getElementById("btn-download-decrypt-img");
 
-                if (imgEl) imgEl.src = data.download_url;
+                if (imgEl) imgEl.src = data.preview_url || data.download_url;
                 if (nameEl) nameEl.textContent = data.filename || "citra_rahasia.png";
                 if (dimsEl) dimsEl.textContent = `${data.dimensions || 'Citra Rahasia'} | 100% Cocok Byte-for-Byte`;
                 if (dlBtn) {

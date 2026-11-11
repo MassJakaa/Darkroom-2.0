@@ -333,7 +333,8 @@ def embed_secret_image_in_decoy(
     decoy_cover_path: str,
     secret_image_path: str,
     output_path: str,
-    passphrase: str = "DarkroomDecoyKey2026!"
+    passphrase: str = "DarkroomDecoyKey2026!",
+    original_filename: str = ""
 ) -> dict:
     """
     Menyembunyikan file citra rahasia ke dalam citra decoy pembawa.
@@ -352,7 +353,7 @@ def embed_secret_image_in_decoy(
         if os.path.exists(temp_enc):
             os.remove(temp_enc)
 
-    orig_name = os.path.basename(secret_image_path)
+    orig_name = os.path.basename(original_filename or secret_image_path)
     with Image.open(secret_image_path) as s_img:
         res_str = f"{s_img.width}x{s_img.height}"
         fmt_str = s_img.format or "PNG"

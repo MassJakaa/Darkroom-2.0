@@ -160,8 +160,77 @@ class TestTransferAndDevelopEndpoints(unittest.TestCase):
         out_p = os.path.join(EXPORTS_DIR, data["filename"])
         self.assertTrue(os.path.exists(out_p))
 
+    def test_recovered_image_preview_is_served_inline_as_image(self):
+        """5. Preview citra hasil dekripsi harus dapat dirender langsung oleh browser."""
+        preview_name = "REVEALED_preview_contract.png"
+        preview_path = os.path.join(EXPORTS_DIR, preview_name)
+        Image.new("RGB", (8, 6), color=(20, 40, 60)).save(preview_path, format="PNG")
+        self.addCleanup(lambda: os.path.exists(preview_path) and os.remove(preview_path))
+
+        res = client.get(f"/api/exports/preview/{preview_name}")
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.headers["content-type"], "image/png")
+        self.assertIn("inline", res.headers["content-disposition"].lower())
+        with open(preview_path, "rb") as preview_file:
+            self.assertEqual(res.content, preview_file.read())
+
+    def test_transfer_outgoing_image_and_incoming_extract_preview_round_trip(self):
+        """6. Citra rahasia hasil ekstraksi harus valid dan memiliki URL preview."""
+        secret_name = "Ada Wong.jpg"
+        secret_bytes = io.BytesIO()
+        Image.new("RGB", (11, 7), color=(180, 30, 90)).save(secret_bytes, format="JPEG")
+        secret_bytes = secret_bytes.getvalue()
+        passphrase = "ImageTransferKey2026!"
+
+        res_out = client.post("/api/transfer/outgoing/image", files={
+            "secret_image": (secret_name, secret_bytes, "image/jpeg")
+        }, data={
+            "cover_filename": self.test_cover_name,
+            "passphrase": passphrase
+        }, headers=self.auth_headers)
+
+        self.assertEqual(res_out.status_code, 200)
+        stego_filename = res_out.json()["output_filename"]
+        with open(os.path.join(EXPORTS_DIR, stego_filename), "rb") as stego_file:
+            res_in = client.post("/api/transfer/incoming/extract", files={
+                "stego_file": (stego_filename, stego_file.read(), "image/png")
+            }, data={"passphrase": passphrase}, headers=self.auth_headers)
+
+        self.assertEqual(res_in.status_code, 200)
+        data = res_in.json()
+        self.assertTrue(data["is_decrypted"])
+        self.assertEqual(data["type"], "IMAGE")
+        self.assertIn("preview_url", data)
+        self.assertNotIn("temp_", data["filename"])
+
+        preview = client.get(data["preview_url"])
+        self.assertEqual(preview.status_code, 200)
+        self.assertEqual(preview.headers["content-type"], "image/jpeg")
+        with Image.open(io.BytesIO(preview.content)) as recovered:
+            self.assertEqual(recovered.size, (11, 7))
+
+    def test_image_stego_default_passphrases_match(self):
+        """7. Passphrase default pembuat dan pembuka citra harus sama."""
+        frontend_path = os.path.join(PROJECT_ROOT, "frontend", "index.html")
+        with open(frontend_path, encoding="utf-8") as frontend_file:
+            frontend = frontend_file.read()
+
+        self.assertIn('id="outgoing-img-passphrase" value="FotoDecoy2026!"', frontend)
+        self.assertIn('id="decrypt-passphrase" value="FotoDecoy2026!"', frontend)
+
+    def test_decrypt_image_preview_is_constrained_to_result_card(self):
+        """8. Preview citra dekripsi tidak boleh melampaui kartu hasil."""
+        css_path = os.path.join(PROJECT_ROOT, "frontend", "css", "style.css")
+        with open(css_path, encoding="utf-8") as css_file:
+            css = css_file.read()
+
+        self.assertIn("#decrypt-recovered-img", css)
+        self.assertIn("max-width: 100%", css)
+        self.assertIn("max-height: 240px", css)
+
     def test_transfer_extract_by_catalog_filename(self):
-        """5. Ekstraksi langsung menggunakan nama berkas katalog stego hasil ekspor (tanpa upload berkas fisik)."""
+        """9. Ekstraksi langsung menggunakan nama berkas katalog stego hasil ekspor (tanpa upload berkas fisik)."""
         secret_msg = "Pesan Rahasia Terbaca Langsung dari Katalog"
         res_out = client.post("/api/transfer/outgoing/text", data={
             "cover_filename": self.test_cover_name,
