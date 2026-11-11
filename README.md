@@ -97,10 +97,10 @@ Sistem memiliki pengaman fisik (*Dead Man's Switch*):
   python Darkroom/backend/hardware/dongle.py --make-key E
   ```
   *(Ganti `E` dengan huruf drive flashdisk Anda)*. File `darkroom.key` akan dibuat.
-- **Opsi Virtual Dongle (Tanpa Flashdisk)**:
-  Di menu **Preferences**, sakelar **"Virtual Dongle"** sudah aktif secara default agar teman Anda dapat langsung menguji tanpa repot mencari flashdisk fisik.
+- **Virtual Dongle untuk Pengujian**:
+  Mode aplikasi normal mewajibkan dongle fisik. Virtual dongle hanya dapat digunakan untuk development/testing dengan mengatur environment variable `DARKROOM_ALLOW_VIRTUAL_DONGLE=true` sebelum menjalankan aplikasi.
 - **Uji Dead Man's Switch**:
-  Matikan sakelar Virtual Dongle (atau cabut flashdisk fisik), sistem seketika mematikan sesi privat dan mengunci seluruh instrumen kriptografi.
+  Dengan dongle fisik, cabut SD Card/flashdisk saat sesi privat aktif. Sistem akan mencabut sesi privat dan mengembalikan aplikasi ke workspace fotografi. Pada pengujian otomatis, virtual dongle dapat dinonaktifkan untuk mensimulasikan pencabutan.
 
 ### 4. Ekspor Foto Modifikasi Steganografi (Transfer)
 1. Masuk ke menu **Transfer (Stego)** di bilah kiri.
@@ -142,7 +142,7 @@ Seluruh modul kriptografi, state machine, steganografi LSB, dan endpoint API tel
 python -m unittest discover -s Darkroom/tests -v
 ```
 
-Hasil uji: **33/33 Unit Tests PASS (100% Berhasil)** dalam ~1 detik.
+Jumlah hasil pengujian mengikuti test suite dan dependensi yang tersedia pada lingkungan pengujian. Jalankan perintah di atas untuk memperoleh hasil aktual; angka hasil tidak dipatok di dokumentasi agar tidak menyesatkan.
 
 ---
 
@@ -183,7 +183,7 @@ Laporan teknis komprehensif format ilmiah telah disediakan di direktori [`docs/`
     │   │   └── models/           # Bobot neural network ONNX (offline)
     │   └── stego/lsb.py          # LSB Framing V2 Engine bertenaga NumPy
     ├── frontend/                 # UI Lightroom Suite (HTML, CSS, JS murni)
-    └── tests/                    # 33 Unit Tests komprehensif
+    └── tests/                    # Test suite kriptografi, sesi, steganografi, dan endpoint
 ```
 
 ---

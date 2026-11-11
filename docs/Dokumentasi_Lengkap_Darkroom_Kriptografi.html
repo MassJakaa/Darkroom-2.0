@@ -376,7 +376,7 @@
     <div class="toc-item" style="padding-left: 20px;"><span class="toc-title">3.3 Kriptografi File: ChaCha20-Poly1305 AEAD</span><span class="toc-page">Halaman 9</span></div>
     <div class="toc-item" style="padding-left: 20px;"><span class="toc-title">3.4 Fungsi Hash SHA-256 & Key Stretching PBKDF2</span><span class="toc-page">Halaman 10</span></div>
     <div class="toc-item" style="padding-left: 20px;"><span class="toc-title">3.5 Steganografi Citra Spasial LSB (Least Significant Bit)</span><span class="toc-page">Halaman 11</span></div>
-    <div class="toc-item" style="padding-left: 20px;"><span class="toc-title">3.6 Buku Besar Terdistribusi: Blockchain Proof-of-Work</span><span class="toc-page">Halaman 12</span></div>
+    <div class="toc-item" style="padding-left: 20px;"><span class="toc-title">3.6 Buku Besar Lokal: Blockchain Proof-of-Work</span><span class="toc-page">Halaman 12</span></div>
 
     <div class="toc-item"><span class="toc-title">BAB IV: BEDAH KODE PROGRAM LENGKAP (SOURCE CODE WALKTHROUGH)</span><span class="toc-page">Halaman 13</span></div>
     <div class="toc-item" style="padding-left: 20px;"><span class="toc-title">4.1 Modul Hardware Dongle (backend/hardware/dongle.py)</span><span class="toc-page">Halaman 13</span></div>
@@ -582,7 +582,7 @@
 <ol>
     <li>
         <strong>Fase 1: Deteksi Kunci Fisik (SD Card Dongle)</strong><br>
-        Aplikasi dijalankan dalam kondisi normal. Background poller di JavaScript mengecek rute `/api/dongle/status` setiap 2 detik. Jika kartu memori kamera dengan file `darkroom.key` yang berisi hash SHA-256 sah terpasang di Card Reader, indikator status di pojok kiri bawah berubah menjadi hijau (*SD Reader Connected*). Pada mode normal, dongle virtual tidak dapat diaktifkan melalui API; fasilitas itu hanya tersedia jika `DARKROOM_ALLOW_VIRTUAL_DONGLE=true` dinyalakan secara eksplisit untuk development/testing.
+        Aplikasi dijalankan dalam kondisi normal. Background poller di JavaScript mengecek rute `/api/session/status` setiap 2 detik. Jika kartu memori kamera dengan file `darkroom.key` yang berisi token sah terpasang di Card Reader, status dongle diperbarui oleh backend. Pada mode normal, dongle virtual tidak aktif; fasilitas itu hanya tersedia jika `DARKROOM_ALLOW_VIRTUAL_DONGLE=true` dinyalakan secara eksplisit untuk development/testing.
     </li>
     <li>
         <strong>Fase 2: Otentikasi Ganda (Biometrik Wajah + Kriptografis)</strong><br>
@@ -717,7 +717,7 @@
     Operasi bitwise AND dengan nilai 254 (`11111110` biner) me-nol-kan bit LSB pixel pembawa, lalu operasi bitwise OR memasukkan bit muatan rahasia `B`. Proses ini selesai dalam waktu <strong>kurang dari 0,02 detik</strong> pada citra beresolusi penuh.
 </p>
 
-<h2>3.6 Buku Besar Terdistribusi: Blockchain Proof-of-Work</h2>
+<h2>3.6 Buku Besar Lokal: Blockchain Proof-of-Work</h2>
 <p>
     Untuk menjamin integritas aset foto bukti jurnalistik (*Chain of Custody*), Darkroom mengimplementasikan struktur data rantai blok sederhana. Setiap blok memiliki struktur data:
 </p>
