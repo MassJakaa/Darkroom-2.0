@@ -73,7 +73,6 @@ document.addEventListener("DOMContentLoaded", () => {
     initPreferencesWorkspace();
     initRenameModal();
     initAuthModal();
-    initPanicLock();
 
     // Muat data awal
     loadCatalog();

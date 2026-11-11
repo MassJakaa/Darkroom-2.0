@@ -229,8 +229,18 @@ class TestTransferAndDevelopEndpoints(unittest.TestCase):
         self.assertIn("max-width: 100%", css)
         self.assertIn("max-height: 240px", css)
 
+    def test_preferences_hides_manual_panic_button(self):
+        """9. Preferences tidak menampilkan tombol panic manual."""
+        frontend_path = os.path.join(PROJECT_ROOT, "frontend", "index.html")
+        with open(frontend_path, encoding="utf-8") as frontend_file:
+            frontend = frontend_file.read()
+
+        self.assertNotIn('id="btn-pref-panic"', frontend)
+        self.assertNotIn('id="sidebar-panic-btn"', frontend)
+        self.assertNotIn("Panic Session Lock", frontend)
+
     def test_transfer_extract_by_catalog_filename(self):
-        """9. Ekstraksi langsung menggunakan nama berkas katalog stego hasil ekspor (tanpa upload berkas fisik)."""
+        """10. Ekstraksi langsung menggunakan nama berkas katalog stego hasil ekspor (tanpa upload berkas fisik)."""
         secret_msg = "Pesan Rahasia Terbaca Langsung dari Katalog"
         res_out = client.post("/api/transfer/outgoing/text", data={
             "cover_filename": self.test_cover_name,
