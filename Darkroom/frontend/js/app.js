@@ -811,9 +811,24 @@ function initDevelopWorkspace() {
         btnToggleSplit.addEventListener("click", () => {
             appState.isSplitView = !appState.isSplitView;
             btnToggleSplit.classList.toggle("active", appState.isSplitView);
+            const canvasWrapper = document.getElementById("develop-canvas-wrapper");
+            const beforePanel = document.getElementById("before-panel");
+            const afterBadge = document.getElementById("after-badge");
             const beforeCanvas = document.getElementById("before-canvas");
+            const hasActiveImage = Boolean(appState.activeImg);
+            const showSplit = appState.isSplitView && hasActiveImage;
+
+            if (canvasWrapper) {
+                canvasWrapper.classList.toggle("split-active", showSplit);
+            }
+            if (beforePanel) {
+                beforePanel.style.display = showSplit ? "flex" : "none";
+            }
+            if (afterBadge) {
+                afterBadge.style.display = showSplit ? "inline-flex" : "none";
+            }
             if (beforeCanvas) {
-                beforeCanvas.style.display = appState.isSplitView ? "block" : "none";
+                beforeCanvas.style.display = "block";
             }
             renderCanvas();
         });
@@ -2406,6 +2421,10 @@ function selectPhoto(photo) {
 
     // Load ke canvas
     const canvas = document.getElementById("photo-canvas");
+    const canvasWrapper = document.getElementById("develop-canvas-wrapper");
+    const beforePanel = document.getElementById("before-panel");
+    const afterPanel = document.getElementById("after-panel");
+    const afterBadge = document.getElementById("after-badge");
     const emptyMsg = document.getElementById("empty-state-msg");
 
     if (photo.is_locked) {
@@ -2424,13 +2443,21 @@ function selectPhoto(photo) {
                 executeUnlockPhotoFile(photo.filename, pass);
             });
         }
+        if (canvasWrapper) canvasWrapper.classList.remove("split-active");
+        if (beforePanel) beforePanel.style.display = "none";
+        if (afterPanel) afterPanel.style.display = "none";
+        if (afterBadge) afterBadge.style.display = "none";
         if (canvas) canvas.style.display = "none";
         appState.activeImg = null;
         return;
     }
 
     if (emptyMsg) emptyMsg.style.display = "none";
+    if (afterPanel) afterPanel.style.display = "flex";
     if (canvas) canvas.style.display = "block";
+    if (canvasWrapper) canvasWrapper.classList.toggle("split-active", appState.isSplitView);
+    if (beforePanel) beforePanel.style.display = appState.isSplitView ? "flex" : "none";
+    if (afterBadge) afterBadge.style.display = appState.isSplitView ? "inline-flex" : "none";
 
     const img = new Image();
     img.crossOrigin = "anonymous";

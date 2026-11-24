@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css?v=20261124-redesign-2b-clean">
+    <link rel="stylesheet" href="css/style.css?v=20261124-compare-fix">
 </head>
 <body class="mode-lightroom">
 
@@ -156,8 +156,14 @@
                 <div class="editor-viewport">
                     <!-- MAIN CANVAS CONTAINER -->
                     <div class="canvas-container" id="develop-canvas-wrapper">
-                        <canvas id="photo-canvas"></canvas>
-                        <canvas id="before-canvas" style="display: none;"></canvas>
+                        <div class="canvas-stage-panel compare-before-panel" id="before-panel" style="display: none;">
+                            <span class="compare-badge">SEBELUM</span>
+                            <canvas id="before-canvas"></canvas>
+                        </div>
+                        <div class="canvas-stage-panel compare-after-panel" id="after-panel" style="display: none;">
+                            <span class="compare-badge compare-after-badge" id="after-badge" style="display: none;">SESUDAH</span>
+                            <canvas id="photo-canvas"></canvas>
+                        </div>
                         <div class="empty-state" id="empty-state-msg">
                             <i class="fa-regular fa-image"></i>
                             <p>Pilih foto dari filmstrip di bawah atau buka dari Library</p>
@@ -849,6 +855,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=20261124-redesign-2b-clean"></script>
+    <script src="js/app.js?v=20261124-compare-fix"></script>
 </body>
 </html>
