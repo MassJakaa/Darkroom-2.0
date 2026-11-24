@@ -47,6 +47,21 @@ LEGACY_HEADER_IMAGE = b"DARKROOM_IMG:"
 LEGACY_DELIMITER = b":::END_ATOSE:::"
 
 
+def strip_internal_prefixes(filename: str, fallback: str = "recovered_document.bin") -> str:
+    """Menghapus prefix internal (RECOVERED_, REVEALED_, temp_) hanya di AWAL nama berkas."""
+    name = os.path.basename(str(filename or "")).strip()
+    while True:
+        if name.startswith("RECOVERED_"):
+            name = name[len("RECOVERED_"):]
+        elif name.startswith("REVEALED_"):
+            name = name[len("REVEALED_"):]
+        elif name.startswith("temp_"):
+            name = name[len("temp_"):]
+        else:
+            break
+    return name or fallback
+
+
 def calculate_image_capacity(cover_image_path: str) -> Dict[str, Any]:
     """
     Menghitung kapasitas muatan biner maksimal dari citra pembawa.
@@ -315,7 +330,7 @@ def embed_binary_file_payload(
         if os.path.exists(temp_enc_file):
             os.remove(temp_enc_file)
 
-    orig_name = os.path.basename(original_filename or file_path)
+    orig_name = strip_internal_prefixes(original_filename or file_path)
     metadata = {
         "payload_type": "FILE",
         "filename": orig_name,
@@ -437,7 +452,7 @@ def extract_and_reveal(
 
     # 2. Tipe Konten: FILE
     elif payload_type == TYPE_FILE:
-        target_name = metadata.get("filename", "recovered_document.bin")
+        target_name = strip_internal_prefixes(metadata.get("filename", "recovered_document.bin"))
         out_path = os.path.join(export_dir, f"RECOVERED_{target_name}")
 
         active_passphrase = passphrase or aes_key

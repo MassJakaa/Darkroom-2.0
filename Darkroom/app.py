@@ -654,6 +654,21 @@ async def api_transfer_outgoing_image(
             os.remove(temp_sec_path)
 
 
+def _strip_internal_prefixes(filename: str, fallback: str = "file_terekstrak.bin") -> str:
+    """Hapus prefix internal (RECOVERED_, REVEALED_, temp_) hanya di AWAL nama berkas."""
+    name = os.path.basename(str(filename or "")).strip()
+    while True:
+        if name.startswith("RECOVERED_"):
+            name = name[len("RECOVERED_"):]
+        elif name.startswith("REVEALED_"):
+            name = name[len("REVEALED_"):]
+        elif name.startswith("temp_"):
+            name = name[len("temp_"):]
+        else:
+            break
+    return name or fallback
+
+
 @app.post("/api/transfer/incoming/extract")
 async def api_transfer_incoming_extract(
     stego_file: Optional[UploadFile] = File(None),
@@ -722,9 +737,7 @@ async def api_transfer_incoming_extract(
                 size_fmt = f"{round(file_size / (1024 * 1024), 2)} MB"
 
             raw_orig = res.get("original_filename") or res.get("metadata", {}).get("filename") or output_name
-            display_name = os.path.basename(raw_orig)
-            if display_name.startswith("temp_"):
-                display_name = display_name[len("temp_"):]
+            display_name = _strip_internal_prefixes(raw_orig, fallback=output_name)
 
             mime_type, _ = mimetypes.guess_type(display_name)
             res["display_filename"] = display_name
@@ -840,7 +853,7 @@ def download_export_file(filename: str, as_name: Optional[str] = None):
     p = os.path.join(EXPORTS_DIR, clean_name)
     if not os.path.exists(p):
         raise HTTPException(status_code=404, detail="File tidak ditemukan!")
-    download_name = os.path.basename(as_name) if as_name else clean_name
+    download_name = _strip_internal_prefixes(as_name, fallback=clean_name) if as_name else _strip_internal_prefixes(clean_name, fallback=clean_name)
     return FileResponse(p, filename=download_name)
 
 

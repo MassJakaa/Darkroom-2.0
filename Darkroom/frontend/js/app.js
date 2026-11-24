@@ -1726,6 +1726,24 @@ function populateDecryptCatalog(preselectFilename) {
 
 let currentDecryptFileBlobUrl = null;
 
+function cleanDisplayFilename(rawName, fallback = "file_terekstrak.bin") {
+    let name = String(rawName || "").trim();
+    const slashIdx = Math.max(name.lastIndexOf("/"), name.lastIndexOf("\\"));
+    if (slashIdx >= 0) name = name.slice(slashIdx + 1);
+    while (true) {
+        if (name.startsWith("RECOVERED_")) {
+            name = name.slice("RECOVERED_".length);
+        } else if (name.startsWith("REVEALED_")) {
+            name = name.slice("REVEALED_".length);
+        } else if (name.startsWith("temp_")) {
+            name = name.slice("temp_".length);
+        } else {
+            break;
+        }
+    }
+    return name || fallback;
+}
+
 function revokeDecryptFileBlobUrl() {
     if (currentDecryptFileBlobUrl) {
         URL.revokeObjectURL(currentDecryptFileBlobUrl);
@@ -1924,7 +1942,10 @@ async function executeDecryptWorkspace() {
                 throw new Error("Berkas hasil dekripsi tidak tersedia untuk diunduh.");
             }
             if (fileBox) {
-                const displayName = data.display_filename || data.original_filename || data.filename || "file_terekstrak.bin";
+                const displayName = cleanDisplayFilename(
+                    data.display_filename || data.original_filename || data.metadata?.filename || data.filename,
+                    "file_terekstrak.bin"
+                );
                 const nameEl = document.getElementById("decrypt-recovered-filename");
                 const sizeEl = document.getElementById("decrypt-recovered-size");
                 const dlBtn = document.getElementById("btn-download-decrypt-file");
@@ -1937,7 +1958,10 @@ async function executeDecryptWorkspace() {
                     sizeEl.textContent = `${sizeText} | Tag Poly1305 VALID`;
                 }
                 if (dlBtn) {
-                    dlBtn.href = data.download_url;
+                    const dlUrl = data.download_url.includes("as_name=")
+                        ? data.download_url
+                        : `${data.download_url}${data.download_url.includes("?") ? "&" : "?"}as_name=${encodeURIComponent(displayName)}`;
+                    dlBtn.href = dlUrl;
                     dlBtn.download = displayName;
                 }
 
@@ -1952,7 +1976,10 @@ async function executeDecryptWorkspace() {
             }
         } else if (data.type === "IMAGE") {
             if (imgBox) {
-                const displayName = data.display_filename || data.original_filename || data.filename || "citra_rahasia.png";
+                const displayName = cleanDisplayFilename(
+                    data.display_filename || data.original_filename || data.metadata?.filename || data.filename,
+                    "citra_rahasia.png"
+                );
                 imgBox.style.display = "block";
                 const imgEl = document.getElementById("decrypt-recovered-img");
                 const nameEl = document.getElementById("decrypt-recovered-imgname");
@@ -1963,7 +1990,10 @@ async function executeDecryptWorkspace() {
                 if (nameEl) nameEl.textContent = displayName;
                 if (dimsEl) dimsEl.textContent = `${data.dimensions || 'Citra Rahasia'} | 100% Cocok Byte-for-Byte`;
                 if (dlBtn) {
-                    dlBtn.href = data.download_url;
+                    const dlUrl = data.download_url.includes("as_name=")
+                        ? data.download_url
+                        : `${data.download_url}${data.download_url.includes("?") ? "&" : "?"}as_name=${encodeURIComponent(displayName)}`;
+                    dlBtn.href = dlUrl;
                     dlBtn.download = displayName;
                 }
             }
