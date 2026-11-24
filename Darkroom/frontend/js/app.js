@@ -2469,9 +2469,29 @@ function renderFilmstrip() {
         track.appendChild(card);
     });
 
-    document.getElementById("filmstrip-left")?.addEventListener("click", () => track.scrollBy({ left: -200, behavior: "smooth" }));
-    document.getElementById("filmstrip-right")?.addEventListener("click", () => track.scrollBy({ left: 200, behavior: "smooth" }));
-    document.getElementById("input-import-photos")?.addEventListener("change", handleImportPhotos);
+    const btnLeft = document.getElementById("filmstrip-left");
+    const btnRight = document.getElementById("filmstrip-right");
+    const shiftFilmstrip = (dir) => {
+        if (track.scrollWidth > track.clientWidth + 2) {
+            track.scrollBy({ left: dir * 220, behavior: "smooth" });
+        }
+        if (!appState.catalog.length) return;
+        const curIdx = appState.activePhoto
+            ? appState.catalog.findIndex(p => p.filename === appState.activePhoto.filename)
+            : -1;
+        const nextIdx = curIdx === -1
+            ? 0
+            : Math.max(0, Math.min(appState.catalog.length - 1, curIdx + dir));
+        if (nextIdx !== curIdx) {
+            selectPhoto(appState.catalog[nextIdx]);
+            const targetCard = track.children[nextIdx];
+            targetCard?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+        }
+    };
+    if (btnLeft) btnLeft.onclick = () => shiftFilmstrip(-1);
+    if (btnRight) btnRight.onclick = () => shiftFilmstrip(1);
+    const importInput = document.getElementById("input-import-photos");
+    if (importInput) importInput.onchange = handleImportPhotos;
 }
 
 async function handleImportPhotos(e) {
