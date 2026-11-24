@@ -296,7 +296,8 @@ def embed_binary_file_payload(
     cover_path: str,
     file_path: str,
     passphrase: str,
-    output_path: str
+    output_path: str,
+    original_filename: str = ""
 ) -> dict:
     """
     Mengenkripsi file biner menggunakan ChaCha20-Poly1305 AEAD lalu menyisipkannya
@@ -314,7 +315,7 @@ def embed_binary_file_payload(
         if os.path.exists(temp_enc_file):
             os.remove(temp_enc_file)
 
-    orig_name = os.path.basename(file_path)
+    orig_name = os.path.basename(original_filename or file_path)
     metadata = {
         "payload_type": "FILE",
         "filename": orig_name,

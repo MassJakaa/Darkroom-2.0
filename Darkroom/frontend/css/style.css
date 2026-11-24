@@ -2291,9 +2291,68 @@ input[type="range"]:active::-moz-range-thumb {
     border: 1px solid var(--border-color);
 }
 
-.inc-file-meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.inc-file-meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
 .inc-file-meta strong { font-size: 12px; color: var(--text-primary); word-break: break-all; }
 .inc-file-meta span { font-size: 10.5px; color: var(--text-muted); }
+
+/* Decrypted File Inline Preview (PDF / Image / Extension Icon) */
+.decrypt-file-preview-box {
+    width: 100%;
+    margin-bottom: 12px;
+    border-radius: var(--radius-md);
+    background-color: var(--bg-canvas);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.decrypt-file-pdf-frame {
+    display: block;
+    width: 100%;
+    height: 280px;
+    border: 0;
+    background-color: #ffffff;
+}
+
+.decrypt-file-img-preview {
+    display: block;
+    max-width: 100%;
+    max-height: 240px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    padding: 8px;
+}
+
+.decrypt-file-generic-preview {
+    width: 100%;
+    padding: 26px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-secondary);
+}
+
+.decrypt-file-generic-preview i {
+    font-size: 40px;
+    color: var(--accent-text);
+}
+
+.decrypt-file-ext-badge {
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    font-family: var(--font-code);
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+}
 
 /* REQUIRED TEST CONTRACT: keep #decrypt-recovered-img constrained to result card */
 #decrypt-recovered-img {

@@ -1724,6 +1724,132 @@ function populateDecryptCatalog(preselectFilename) {
     }
 }
 
+let currentDecryptFileBlobUrl = null;
+
+function revokeDecryptFileBlobUrl() {
+    if (currentDecryptFileBlobUrl) {
+        URL.revokeObjectURL(currentDecryptFileBlobUrl);
+        currentDecryptFileBlobUrl = null;
+    }
+}
+
+function getFileExtensionIcon(filename) {
+    const ext = (filename.split(".").pop() || "").toLowerCase();
+    if (ext === "pdf") return { icon: "fa-file-pdf", label: "PDF" };
+    if (["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg"].includes(ext)) return { icon: "fa-file-image", label: ext.toUpperCase() };
+    if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) return { icon: "fa-file-zipper", label: ext.toUpperCase() };
+    if (["doc", "docx", "odt", "rtf"].includes(ext)) return { icon: "fa-file-word", label: ext.toUpperCase() };
+    if (["xls", "xlsx", "csv", "ods"].includes(ext)) return { icon: "fa-file-excel", label: ext.toUpperCase() };
+    if (["ppt", "pptx"].includes(ext)) return { icon: "fa-file-powerpoint", label: ext.toUpperCase() };
+    if (["txt", "md", "json", "xml", "log", "py", "js", "html", "css"].includes(ext)) return { icon: "fa-file-lines", label: ext.toUpperCase() };
+    if (["mp3", "wav", "ogg", "flac", "m4a"].includes(ext)) return { icon: "fa-file-audio", label: ext.toUpperCase() };
+    if (["mp4", "mkv", "webm", "mov", "avi"].includes(ext)) return { icon: "fa-file-video", label: ext.toUpperCase() };
+    return { icon: "fa-file-shield", label: ext ? ext.toUpperCase() : "BIN" };
+}
+
+function clearDecryptResults() {
+    revokeDecryptFileBlobUrl();
+
+    const placeholder = document.getElementById("decrypt-placeholder");
+    const textBox = document.getElementById("decrypt-text-box");
+    const fileBox = document.getElementById("decrypt-file-box");
+    const imgBox = document.getElementById("decrypt-img-box");
+    const errBox = document.getElementById("decrypt-error-box");
+
+    if (placeholder) placeholder.style.display = "none";
+    if (textBox) textBox.style.display = "none";
+    if (fileBox) fileBox.style.display = "none";
+    if (imgBox) imgBox.style.display = "none";
+    if (errBox) errBox.style.display = "none";
+
+    const textContent = document.getElementById("decrypt-text-content");
+    if (textContent) textContent.textContent = "";
+
+    const filePreview = document.getElementById("decrypt-file-preview");
+    if (filePreview) filePreview.innerHTML = "";
+
+    const fileNameEl = document.getElementById("decrypt-recovered-filename");
+    if (fileNameEl) fileNameEl.textContent = "-";
+
+    const fileSizeEl = document.getElementById("decrypt-recovered-size");
+    if (fileSizeEl) fileSizeEl.textContent = "-";
+
+    const fileDlBtn = document.getElementById("btn-download-decrypt-file");
+    if (fileDlBtn) {
+        fileDlBtn.removeAttribute("href");
+        fileDlBtn.removeAttribute("download");
+    }
+
+    const imgEl = document.getElementById("decrypt-recovered-img");
+    if (imgEl) imgEl.removeAttribute("src");
+
+    const imgDlBtn = document.getElementById("btn-download-decrypt-img");
+    if (imgDlBtn) {
+        imgDlBtn.removeAttribute("href");
+        imgDlBtn.removeAttribute("download");
+    }
+
+    const errDesc = document.getElementById("decrypt-error-desc");
+    if (errDesc) errDesc.textContent = "";
+}
+
+async function renderDecryptedFilePreview(previewContainer, cardIconEl, displayName, mimeType, fetchUrl) {
+    if (!previewContainer) return;
+    previewContainer.innerHTML = "";
+
+    const ext = (displayName.split(".").pop() || "").toLowerCase();
+    const { icon, label } = getFileExtensionIcon(displayName);
+    if (cardIconEl) {
+        cardIconEl.className = `fa-solid ${icon}`;
+    }
+
+    const isPdf = ext === "pdf" || mimeType === "application/pdf";
+    const isImage = ["png", "jpg", "jpeg", "webp", "gif", "bmp"].includes(ext) || (mimeType && mimeType.startsWith("image/"));
+
+    if ((isPdf || isImage) && fetchUrl) {
+        try {
+            const resp = await fetch(fetchUrl);
+            if (!resp.ok) throw new Error("Gagal memuat pratinjau berkas.");
+            const rawBlob = await resp.blob();
+            const typedBlob = isPdf
+                ? new Blob([rawBlob], { type: "application/pdf" })
+                : rawBlob;
+
+            revokeDecryptFileBlobUrl();
+            currentDecryptFileBlobUrl = URL.createObjectURL(typedBlob);
+
+            if (isPdf) {
+                const iframe = document.createElement("iframe");
+                iframe.className = "decrypt-file-pdf-frame";
+                iframe.src = `${currentDecryptFileBlobUrl}#toolbar=0&navpanes=0&page=1`;
+                iframe.title = `Pratinjau ${displayName}`;
+                previewContainer.appendChild(iframe);
+                return;
+            }
+
+            if (isImage) {
+                const img = document.createElement("img");
+                img.className = "decrypt-file-img-preview";
+                img.src = currentDecryptFileBlobUrl;
+                img.alt = `Pratinjau ${displayName}`;
+                previewContainer.appendChild(img);
+                return;
+            }
+        } catch (previewErr) {
+            console.warn("Fallback ke ikon ekstensi untuk pratinjau berkas:", previewErr);
+        }
+    }
+
+    // Fallback untuk tipe berkas lain (atau jika blob preview gagal dimuat)
+    const fallback = document.createElement("div");
+    fallback.className = "decrypt-file-generic-preview";
+    fallback.innerHTML = `
+        <i class="fa-solid ${icon}"></i>
+        <span class="decrypt-file-ext-badge">${label}</span>
+    `;
+    previewContainer.appendChild(fallback);
+}
+
 async function executeDecryptWorkspace() {
     const picker = document.getElementById("decrypt-catalog-picker");
     const fileInput = document.getElementById("decrypt-file-input");
@@ -1742,17 +1868,13 @@ async function executeDecryptWorkspace() {
     const vigKey = vigKeyInput ? vigKeyInput.value.trim() : "JURNALIS";
     const passphrase = passInput ? passInput.value.trim() : "FotoDecoy2026!";
 
-    const placeholder = document.getElementById("decrypt-placeholder");
     const textBox = document.getElementById("decrypt-text-box");
     const fileBox = document.getElementById("decrypt-file-box");
     const imgBox = document.getElementById("decrypt-img-box");
     const errBox = document.getElementById("decrypt-error-box");
 
-    if (placeholder) placeholder.style.display = "none";
-    if (textBox) textBox.style.display = "none";
-    if (fileBox) fileBox.style.display = "none";
-    if (imgBox) imgBox.style.display = "none";
-    if (errBox) errBox.style.display = "none";
+    // Hapus seluruh hasil percobaan sebelumnya & revoke blob URL lama
+    clearDecryptResults();
 
     btnExecute.disabled = true;
     btnExecute.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengekstrak LSB & Memverifikasi Otentikasi AEAD...';
@@ -1782,40 +1904,55 @@ async function executeDecryptWorkspace() {
         if (!res.ok) {
             throw new Error(data.detail || "Gagal membongkar payload!");
         }
+        if (!data.has_payload) {
+            throw new Error(data.message || "Tidak ditemukan payload Darkroom yang valid pada citra ini.");
+        }
+        if (!data.is_decrypted) {
+            throw new Error(data.error || data.message || "Dekripsi gagal: Kunci atau passphrase salah.");
+        }
 
-        // # FIX: penyesuaian payload & state
         if (data.type === "TEXT") {
             if (textBox) {
                 textBox.style.display = "block";
                 const contentEl = document.getElementById("decrypt-text-content");
                 if (contentEl) {
-                    contentEl.textContent = data.is_decrypted
-                        ? (data.plaintext || "")
-                        : (data.error || data.raw_ciphertext || "Payload teks belum dapat didekripsi.");
+                    contentEl.textContent = data.plaintext || "";
                 }
             }
         } else if (data.type === "FILE") {
+            if (!data.download_url) {
+                throw new Error("Berkas hasil dekripsi tidak tersedia untuk diunduh.");
+            }
             if (fileBox) {
-                fileBox.style.display = "block";
+                const displayName = data.display_filename || data.original_filename || data.filename || "file_terekstrak.bin";
                 const nameEl = document.getElementById("decrypt-recovered-filename");
                 const sizeEl = document.getElementById("decrypt-recovered-size");
                 const dlBtn = document.getElementById("btn-download-decrypt-file");
+                const previewEl = document.getElementById("decrypt-file-preview");
+                const cardIconEl = document.getElementById("decrypt-file-card-icon");
 
-                if (nameEl) nameEl.textContent = data.filename || "file_terekstrak.bin";
+                if (nameEl) nameEl.textContent = displayName;
                 if (sizeEl) {
-                    const sizeText = data.file_size_formatted || (data.file_size != null ? `${data.file_size} B` : "Berkas berhasil dipulihkan");
+                    const sizeText = data.file_size_formatted || (data.file_size != null ? `${data.file_size} B` : "Berkas dipulihkan");
                     sizeEl.textContent = `${sizeText} | Tag Poly1305 VALID`;
                 }
                 if (dlBtn) {
                     dlBtn.href = data.download_url;
-                    dlBtn.download = data.filename || "file_terekstrak.bin";
+                    dlBtn.download = displayName;
                 }
+
+                await renderDecryptedFilePreview(
+                    previewEl,
+                    cardIconEl,
+                    displayName,
+                    data.mime_type || "",
+                    data.preview_url || data.download_url
+                );
+                fileBox.style.display = "block";
             }
         } else if (data.type === "IMAGE") {
-            if (!data.is_decrypted) {
-                throw new Error(data.error || "Citra rahasia gagal didekripsi.");
-            }
             if (imgBox) {
+                const displayName = data.display_filename || data.original_filename || data.filename || "citra_rahasia.png";
                 imgBox.style.display = "block";
                 const imgEl = document.getElementById("decrypt-recovered-img");
                 const nameEl = document.getElementById("decrypt-recovered-imgname");
@@ -1823,17 +1960,18 @@ async function executeDecryptWorkspace() {
                 const dlBtn = document.getElementById("btn-download-decrypt-img");
 
                 if (imgEl) imgEl.src = data.preview_url || data.download_url;
-                if (nameEl) nameEl.textContent = data.filename || "citra_rahasia.png";
+                if (nameEl) nameEl.textContent = displayName;
                 if (dimsEl) dimsEl.textContent = `${data.dimensions || 'Citra Rahasia'} | 100% Cocok Byte-for-Byte`;
                 if (dlBtn) {
                     dlBtn.href = data.download_url;
-                    dlBtn.download = data.filename || "citra_rahasia.png";
+                    dlBtn.download = displayName;
                 }
             }
         } else {
             throw new Error(data.message || "Tipe payload tidak dikenali.");
         }
     } catch (err) {
+        clearDecryptResults();
         if (errBox) {
             errBox.style.display = "flex";
             const errEl = document.getElementById("decrypt-error-desc");

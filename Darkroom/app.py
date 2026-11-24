@@ -584,7 +584,13 @@ async def api_transfer_outgoing_file(
     out_path = os.path.join(EXPORTS_DIR, out_name)
 
     try:
-        res = embed_binary_file_payload(cover_path, temp_payload_path, passphrase, out_path)
+        res = embed_binary_file_payload(
+            cover_path,
+            temp_payload_path,
+            passphrase,
+            out_path,
+            original_filename=clean_payload_name
+        )
         # Salin ke katalog agar foto yang sudah dimodifikasi langsung muncul di Library & Filmstrip
         shutil.copy2(out_path, os.path.join(CATALOG_DIR, out_name))
         return {
@@ -681,6 +687,8 @@ async def api_transfer_incoming_extract(
         raise HTTPException(status_code=400, detail="Unggah file stego atau pilih nama berkas katalog!")
 
     try:
+        from urllib.parse import quote
+
         active_pass = passphrase or aes_key
         res = extract_and_reveal(
             temp_path,
@@ -689,11 +697,44 @@ async def api_transfer_incoming_extract(
             passphrase=active_pass,
             export_dir=EXPORTS_DIR
         )
-        if res.get("saved_file"):
-            output_name = os.path.basename(res["saved_file"])
-            res["download_url"] = f"/api/exports/download/{output_name}"
-            if res.get("type") == "IMAGE":
-                res["preview_url"] = f"/api/exports/preview/{output_name}"
+
+        # Pastikan ekstraksi dan verifikasi tag AEAD (GCM / Poly1305) benar-benar lulus
+        if not res.get("has_payload"):
+            raise HTTPException(
+                status_code=400,
+                detail=res.get("message") or "Tidak ditemukan payload steganografi Darkroom yang valid pada citra ini."
+            )
+        if not res.get("is_decrypted"):
+            raise HTTPException(
+                status_code=400,
+                detail=res.get("error") or res.get("message") or "Dekripsi gagal: Kunci atau passphrase salah, atau muatan telah dimanipulasi."
+            )
+
+        if res.get("saved_file") and os.path.exists(res["saved_file"]):
+            saved_path = res["saved_file"]
+            output_name = os.path.basename(saved_path)
+            file_size = os.path.getsize(saved_path)
+            if file_size < 1024:
+                size_fmt = f"{file_size} B"
+            elif file_size < 1024 * 1024:
+                size_fmt = f"{round(file_size / 1024, 1)} KB"
+            else:
+                size_fmt = f"{round(file_size / (1024 * 1024), 2)} MB"
+
+            raw_orig = res.get("original_filename") or res.get("metadata", {}).get("filename") or output_name
+            display_name = os.path.basename(raw_orig)
+            if display_name.startswith("temp_"):
+                display_name = display_name[len("temp_"):]
+
+            mime_type, _ = mimetypes.guess_type(display_name)
+            res["display_filename"] = display_name
+            res["file_size"] = file_size
+            res["file_size_formatted"] = size_fmt
+            res["mime_type"] = mime_type or "application/octet-stream"
+            res["download_url"] = f"/api/exports/download/{quote(output_name)}?as_name={quote(display_name)}"
+
+            if res.get("type") == "IMAGE" or (mime_type and (mime_type.startswith("image/") or mime_type == "application/pdf")):
+                res["preview_url"] = f"/api/exports/preview/{quote(output_name)}"
         return res
     finally:
         if temp_created and os.path.exists(temp_path):
@@ -794,12 +835,13 @@ async def api_reveal_file(
 
 
 @app.get("/api/exports/download/{filename}")
-def download_export_file(filename: str):
+def download_export_file(filename: str, as_name: Optional[str] = None):
     clean_name = os.path.basename(filename)
     p = os.path.join(EXPORTS_DIR, clean_name)
     if not os.path.exists(p):
         raise HTTPException(status_code=404, detail="File tidak ditemukan!")
-    return FileResponse(p, filename=clean_name)
+    download_name = os.path.basename(as_name) if as_name else clean_name
+    return FileResponse(p, filename=download_name)
 
 
 @app.get("/api/exports/preview/{filename}")
@@ -810,8 +852,8 @@ def preview_export_image(filename: str):
         raise HTTPException(status_code=404, detail="File preview tidak ditemukan!")
 
     media_type, _ = mimetypes.guess_type(clean_name)
-    if not media_type or not media_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Berkas preview bukan citra yang didukung!")
+    if not media_type or not (media_type.startswith("image/") or media_type == "application/pdf"):
+        raise HTTPException(status_code=400, detail="Berkas preview bukan format pratinjau yang didukung!")
 
     return FileResponse(
         p,

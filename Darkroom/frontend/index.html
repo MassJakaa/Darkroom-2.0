@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css?v=20261124-compare-fix">
+    <link rel="stylesheet" href="css/style.css?v=20261124-decrypt-file-fix">
 </head>
 <body class="mode-lightroom">
 
@@ -630,11 +630,12 @@
 
                                 <!-- Box Hasil Berkas Biner -->
                                 <div class="reveal-result-box" id="decrypt-file-box" style="display: none;">
+                                    <div class="decrypt-file-preview-box" id="decrypt-file-preview"></div>
                                     <div class="inc-file-card">
-                                        <i class="fa-solid fa-file-shield" style="font-size: 32px; color: var(--accent-green);"></i>
+                                        <i class="fa-solid fa-file-shield" id="decrypt-file-card-icon" style="font-size: 28px; color: var(--accent-green);"></i>
                                         <div class="inc-file-meta">
-                                            <strong id="decrypt-recovered-filename">dokumen_rahasia.pdf</strong>
-                                            <span id="decrypt-recovered-size">124.5 KB | Tag Poly1305 VALID</span>
+                                            <strong id="decrypt-recovered-filename">-</strong>
+                                            <span id="decrypt-recovered-size">-</span>
                                         </div>
                                         <a href="#" class="btn btn-success" id="btn-download-decrypt-file" download>
                                             <i class="fa-solid fa-download"></i> Simpan Berkas Asli
@@ -855,6 +856,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=20261124-compare-fix"></script>
+    <script src="js/app.js?v=20261124-decrypt-file-fix"></script>
 </body>
 </html>
