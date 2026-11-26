@@ -1748,6 +1748,7 @@ input[type="range"]:active::-moz-range-thumb {
 
 .modal-card {
     width: min(440px, 100%);
+    max-height: calc(100vh - 32px);
     max-height: calc(100dvh - 32px);
     border-radius: var(--radius-xl);
     background-color: var(--bg-panel);
@@ -1758,6 +1759,11 @@ input[type="range"]:active::-moz-range-thumb {
     overflow: hidden;
 }
 
+#modal-auth-prompt .modal-card {
+    width: 480px;
+    max-width: calc(100vw - 32px);
+}
+
 .modal-header {
     padding: 14px 18px;
     border-bottom: 1px solid var(--border-color);
@@ -1766,6 +1772,7 @@ input[type="range"]:active::-moz-range-thumb {
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
+    flex-shrink: 0;
 }
 
 .modal-header h3 {
@@ -1801,11 +1808,25 @@ input[type="range"]:active::-moz-range-thumb {
 }
 
 .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
     padding: 18px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
+}
+
+#modal-bio-video {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    height: auto;
+    margin: 8px 0 4px;
+    border-radius: var(--radius-md);
+    background-color: #090a0c;
+    object-fit: cover;
+    object-position: center;
+    border: 1px solid var(--border-color);
 }
 
 .modal-footer {
@@ -1815,6 +1836,7 @@ input[type="range"]:active::-moz-range-thumb {
     display: flex;
     justify-content: flex-end;
     gap: var(--space-2);
+    flex-shrink: 0;
 }
 
 /* --------------------------------------------------------------------------
